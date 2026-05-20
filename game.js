@@ -335,6 +335,7 @@ class Backdrop {
     sunGrad.addColorStop(0, "#ffd84d");
     sunGrad.addColorStop(0.5, "#ff7733");
     sunGrad.addColorStop(1, "#ff3df0");
+    // sun gradient fill (with outer glow)
     ctx.save();
     ctx.beginPath();
     ctx.arc(sunX, sunY, sunR, Math.PI, TAU);
@@ -343,13 +344,19 @@ class Backdrop {
     ctx.shadowColor = "#ff3df0";
     ctx.shadowBlur = 40;
     ctx.fill();
-    // scan lines through sun
-    ctx.globalCompositeOperation = "destination-out";
-    const scanH = 4;
+    ctx.restore();
+    // scan lines: clipped to the sun semicircle so we don't carve the sky
+    ctx.save();
+    ctx.beginPath();
+    ctx.arc(sunX, sunY, sunR, Math.PI, TAU);
+    ctx.closePath();
+    ctx.clip();
+    ctx.fillStyle = "rgba(0,0,0,0.7)";
+    const scanH = 3;
     const scanGap = 6;
     for (let y = sunY - sunR + ((this.scanOffset * 0.5) % scanGap); y < sunY; y += scanGap) {
-      ctx.fillStyle = "rgba(0,0,0,0.55)";
-      ctx.fillRect(sunX - sunR, y, sunR * 2, scanH * (1 + (sunY - y) / sunR));
+      const thick = scanH * (0.6 + ((sunY - y) / sunR) * 0.8);
+      ctx.fillRect(sunX - sunR, y, sunR * 2, thick);
     }
     ctx.restore();
 
@@ -447,9 +454,10 @@ class Ship {
     this.angle = lerpAngle(this.angle, this.aim, clamp(dt * C.ship.turnSpeed, 0, 1));
   }
   draw(ctx) {
-    const blink = this.invuln > 0 && Math.floor(this.invuln * 12) % 2 === 0;
-    if (blink) return;
+    const alpha =
+      this.invuln > 0 ? 0.45 + (Math.sin(this.invuln * 18) + 1) * 0.25 : 1;
     ctx.save();
+    ctx.globalAlpha = alpha;
     ctx.translate(this.x, this.y);
     ctx.rotate(this.angle);
 
@@ -908,31 +916,50 @@ class Game {
   }
 
   _spawnAsteroidEdge(size) {
-    const margin = 60;
-    let x, y;
+    // spawn at edge, moving INTO the screen.
+    // (must spawn inside the wrap zone, so x/y within +/- (r+8) of edge)
+    const spec = C.asteroid.sizes[size];
+    const sp = rand(spec.vMin, spec.vMax);
     const side = randi(0, 3);
+    let x, y, vx, vy;
+    const spread = Math.PI / 3; // +/- 60deg cone into screen
     if (side === 0) {
-      x = -margin;
+      x = 0;
       y = rand(this.h);
+      const a = rand(-spread, spread);
+      vx = Math.cos(a) * sp;
+      vy = Math.sin(a) * sp;
     } else if (side === 1) {
-      x = this.w + margin;
+      x = this.w;
       y = rand(this.h);
+      const a = Math.PI + rand(-spread, spread);
+      vx = Math.cos(a) * sp;
+      vy = Math.sin(a) * sp;
     } else if (side === 2) {
       x = rand(this.w);
-      y = -margin;
+      y = 0;
+      const a = Math.PI / 2 + rand(-spread, spread);
+      vx = Math.cos(a) * sp;
+      vy = Math.sin(a) * sp;
     } else {
       x = rand(this.w);
-      y = this.h + margin;
+      y = this.h;
+      const a = -Math.PI / 2 + rand(-spread, spread);
+      vx = Math.cos(a) * sp;
+      vy = Math.sin(a) * sp;
     }
-    // ensure not on top of ship
+    // avoid spawning right on top of the ship
+    if (this.ship && Math.hypot(x - this.ship.x, y - this.ship.y) < 160) {
+      x = this.w - x;
+      y = this.h - y;
+      vx = -vx;
+      vy = -vy;
+    }
     const a = new Asteroid(x, y, size);
-    // bias velocity toward center a touch
-    const cx = this.w / 2,
-      cy = this.h / 2;
-    const ang = Math.atan2(cy - y, cx - x) + rand(-0.6, 0.6);
-    const s = rand(C.asteroid.sizes[size].vMin, C.asteroid.sizes[size].vMax);
-    a.vx = Math.cos(ang) * s;
-    a.vy = Math.sin(ang) * s;
+    a.x = x;
+    a.y = y;
+    a.vx = vx;
+    a.vy = vy;
     this.asteroids.push(a);
   }
 
