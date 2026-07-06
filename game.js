@@ -433,10 +433,6 @@
     const mult = DIFF_MULTIPLIERS[result.difficulty] || 1;
     ctx.fillText(`${diffLabel} ×${mult} · ${genLabel}`, W / 2, cardY + 30);
 
-    ctx.fillStyle = "#4cc9f0";
-    ctx.font = "16px 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif";
-    ctx.fillText(SHARE_URL, W / 2, H - 40);
-
     return canvas;
   }
 
