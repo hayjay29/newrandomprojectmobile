@@ -11,6 +11,7 @@
   --text-dim: #a0a0b8;
   --white: #ffffff;
   --shadow: rgba(0, 0, 0, 0.4);
+  --footer-clearance: 52px;
 }
 
 * {
