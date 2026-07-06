@@ -148,16 +148,12 @@
     return name;
   }
 
+  const IMAGE_ATTEMPT_MS = 1500;
+
   function getImageUrls(id) {
-    const sprite = `raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${id}.png`;
-    const artwork = `raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/${id}.png`;
     return [
-      `https://wsrv.nl/?url=${encodeURIComponent(artwork)}&w=400&output=png`,
-      `https://wsrv.nl/?url=${encodeURIComponent(sprite)}&w=400&output=png`,
-      `https://cdn.jsdelivr.net/gh/PokeAPI/sprites@master/sprites/pokemon/other/official-artwork/${id}.png`,
-      `https://cdn.jsdelivr.net/gh/PokeAPI/sprites@master/sprites/pokemon/${id}.png`,
       `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/${id}.png`,
-      `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${id}.png`,
+      `https://cdn.jsdelivr.net/gh/PokeAPI/sprites@master/sprites/pokemon/${id}.png`,
     ];
   }
 
@@ -603,6 +599,14 @@
   els.shareDownloadBtn.addEventListener("click", downloadImage);
   els.shareCloseBtn.addEventListener("click", closeShareModal);
   els.shareModal.querySelector(".share-modal-backdrop").addEventListener("click", closeShareModal);
+  els.retryImageBtn.addEventListener("click", () => {
+    if (currentImageId) loadImage(currentImageId);
+  });
+  els.pokemonImageWrap.addEventListener("click", (e) => {
+    if (!els.imageFallback.classList.contains("hidden") && e.target !== els.retryImageBtn) {
+      if (currentImageId) loadImage(currentImageId);
+    }
+  });
 
   migrateLegacyBest();
   updateBestDisplay();
