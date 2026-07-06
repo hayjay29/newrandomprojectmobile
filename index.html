@@ -11,7 +11,7 @@
     <meta name="mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <title>포켓몬 이름 맞히기</title>
-    <link rel="stylesheet" href="style.css" />
+    <link rel="stylesheet" href="style.css?v=4" />
   </head>
   <body>
   <div id="app">
@@ -95,7 +95,7 @@
         <p class="question-label">이 포켓몬의 이름은?</p>
         <div class="pokemon-card">
           <div id="pokemon-image-wrap" class="pokemon-image-wrap">
-            <img id="pokemon-image" src="" alt="포켓몬" referrerpolicy="no-referrer" />
+            <img id="pokemon-image" src="" alt="포켓몬" referrerpolicy="no-referrer" decoding="async" />
             <div id="image-loader" class="image-loader hidden">
               <div class="pokeball small spinning" aria-hidden="true"></div>
             </div>
@@ -158,6 +158,6 @@
     <p class="footer-note">팬 제작 게임 · 공식과 무관합니다</p>
   </footer>
 
-  <script src="game.js"></script>
+  <script src="game.js?v=4"></script>
   </body>
 </html>

@@ -125,11 +125,23 @@
     return pool;
   }
 
+  const FETCH_TIMEOUT = 6000;
+
+  function fetchWithTimeout(url, options = {}, timeout = FETCH_TIMEOUT) {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), timeout);
+    return fetch(url, {
+      ...options,
+      signal: controller.signal,
+      referrerPolicy: "no-referrer",
+    }).finally(() => clearTimeout(timer));
+  }
+
   async function fetchKoreanName(id) {
     if (nameCache[id]) return nameCache[id];
 
     try {
-      const res = await fetch(`https://pokeapi.co/api/v2/pokemon-species/${id}/`);
+      const res = await fetchWithTimeout(`https://pokeapi.co/api/v2/pokemon-species/${id}/`);
       if (!res.ok) throw new Error("fetch failed");
       const data = await res.json();
       const ko = data.names.find((n) => n.language.name === "ko");
@@ -143,61 +155,113 @@
     }
   }
 
-  async function preloadNames(pool, onProgress) {
-    const batchSize = 20;
-    for (let i = 0; i < pool.length; i += batchSize) {
-      const batch = pool.slice(i, i + batchSize);
-      await Promise.all(batch.map((id) => fetchKoreanName(id)));
-      const pct = Math.round(((i + batch.length) / pool.length) * 100);
-      onProgress(pct);
-    }
-  }
-
   function getImageUrls(id) {
     return [
-      `https://cdn.jsdelivr.net/gh/PokeAPI/sprites@master/sprites/pokemon/other/official-artwork/${id}.png`,
       `https://cdn.jsdelivr.net/gh/PokeAPI/sprites@master/sprites/pokemon/${id}.png`,
-      `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/${id}.png`,
+      `https://cdn.jsdelivr.net/gh/PokeAPI/sprites@master/sprites/pokemon/other/official-artwork/${id}.png`,
       `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${id}.png`,
+      `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/${id}.png`,
     ];
   }
 
-  function loadImage(id) {
-    return new Promise((resolve) => {
-      els.imageLoader.classList.remove("hidden");
-      els.pokemonImage.style.opacity = "0";
+  async function fetchSpriteUrls(id) {
+    const staticUrls = getImageUrls(id);
+    try {
+      const res = await fetchWithTimeout(`https://pokeapi.co/api/v2/pokemon/${id}/`);
+      if (!res.ok) return staticUrls;
+      const data = await res.json();
+      const s = data.sprites;
+      const apiUrls = [
+        s.front_default,
+        s.other?.home?.front_default,
+        s.other?.["official-artwork"]?.front_default,
+      ].filter(Boolean);
+      return [...new Set([...apiUrls, ...staticUrls])];
+    } catch {
+      return staticUrls;
+    }
+  }
 
-      const sources = getImageUrls(id);
-      let attempt = 0;
+  function revokeImageObjectUrl() {
+    const prev = els.pokemonImage.dataset.objectUrl;
+    if (prev) {
+      URL.revokeObjectURL(prev);
+      delete els.pokemonImage.dataset.objectUrl;
+    }
+  }
 
-      const finish = (src) => {
+  function applyImageSrc(src) {
+    return new Promise((resolve, reject) => {
+      const img = els.pokemonImage;
+      const timer = setTimeout(() => {
+        img.onload = null;
+        img.onerror = null;
+        reject(new Error("timeout"));
+      }, FETCH_TIMEOUT);
+
+      img.onload = () => {
         clearTimeout(timer);
-        if (src) {
-          els.pokemonImage.src = src;
-          els.pokemonImage.style.opacity = "1";
-        } else {
-          els.pokemonImage.removeAttribute("src");
-          els.pokemonImage.style.opacity = "0.3";
-        }
-        els.imageLoader.classList.add("hidden");
+        img.onload = null;
+        img.onerror = null;
         resolve();
       };
-
-      const timer = setTimeout(() => finish(null), 12000);
-
-      const img = new Image();
-      img.referrerPolicy = "no-referrer";
-      img.onload = () => finish(img.src);
       img.onerror = () => {
-        attempt++;
-        if (attempt < sources.length) {
-          img.src = sources[attempt];
-        } else {
-          finish(null);
-        }
+        clearTimeout(timer);
+        img.onload = null;
+        img.onerror = null;
+        reject(new Error("error"));
       };
-      img.src = sources[0];
+
+      revokeImageObjectUrl();
+      img.referrerPolicy = "no-referrer";
+      if (src.startsWith("blob:")) {
+        img.dataset.objectUrl = src;
+      }
+      img.src = src;
     });
+  }
+
+  async function tryFetchBlob(url) {
+    const res = await fetchWithTimeout(url);
+    if (!res.ok) throw new Error("bad status");
+    const blob = await res.blob();
+    if (!blob.type.startsWith("image/")) throw new Error("not image");
+    return URL.createObjectURL(blob);
+  }
+
+  async function loadImage(id) {
+    els.imageLoader.classList.remove("hidden");
+    els.pokemonImage.style.opacity = "0";
+
+    const sources = await fetchSpriteUrls(id);
+    let loaded = false;
+
+    for (const url of sources) {
+      try {
+        const blobUrl = await tryFetchBlob(url);
+        await applyImageSrc(blobUrl);
+        loaded = true;
+        break;
+      } catch {
+        /* try next */
+      }
+
+      try {
+        await applyImageSrc(url);
+        loaded = true;
+        break;
+      } catch {
+        /* try next */
+      }
+    }
+
+    if (!loaded) {
+      revokeImageObjectUrl();
+      els.pokemonImage.removeAttribute("src");
+    }
+
+    els.pokemonImage.style.opacity = loaded ? "1" : "0.3";
+    els.imageLoader.classList.add("hidden");
   }
 
   function pickRandom(arr, count, exclude) {
@@ -249,13 +313,16 @@
     els.choices.innerHTML = "";
 
     const id = pokemonPool[Math.floor(Math.random() * pokemonPool.length)];
-    currentPokemon = { id, name: nameCache[id] || (await fetchKoreanName(id)) };
+    const wrongIds = pickRandom(pokemonPool, 3, id);
+    const roundIds = [id, ...wrongIds];
 
     els.pokemonNumber.textContent = `#${String(id).padStart(3, "0")}`;
     applyDifficultyVisuals();
-    await loadImage(id);
 
-    const wrongIds = pickRandom(pokemonPool, 3, id);
+    await Promise.all([loadImage(id), ...roundIds.map((pid) => fetchKoreanName(pid))]);
+
+    currentPokemon = { id, name: nameCache[id] };
+
     const options = shuffle([
       { id, name: currentPokemon.name },
       ...wrongIds.map((wid) => ({ id: wid, name: nameCache[wid] })),
@@ -533,15 +600,7 @@
 
   async function startGame() {
     resetGameState();
-    showScreen("loading");
-
     pokemonPool = buildPool(generation);
-    els.loadingText.textContent = "포켓몬 이름 불러오는 중... 0%";
-
-    await preloadNames(pokemonPool, (pct) => {
-      els.loadingText.textContent = `포켓몬 이름 불러오는 중... ${pct}%`;
-    });
-
     showScreen("game");
     await startRound();
   }
