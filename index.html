@@ -1,102 +1,91 @@
 <!doctype html>
-<html lang="ko">
+<html lang="en">
   <head>
     <meta charset="utf-8" />
     <meta
       name="viewport"
       content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no"
     />
-    <meta name="theme-color" content="#6c5ce7" />
+    <meta name="theme-color" content="#0a0418" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="mobile-web-app-capable" content="yes" />
-    <title>Phonics Quest — 소리 맞추기 모험</title>
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link
-      href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&display=swap"
-      rel="stylesheet"
-    />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <title>DRIFT // synthwave asteroids</title>
     <link rel="stylesheet" href="style.css" />
   </head>
   <body>
-    <div id="app">
-      <!-- ===== 홈 / 레벨 맵 ===== -->
-      <section id="screen-home" class="screen active">
-        <header class="home-header">
-          <div class="mascot" aria-hidden="true">🦊</div>
-          <h1 class="app-title">Phonics Quest</h1>
-          <p class="app-sub">소리를 듣고 단어를 완성해요!</p>
-        </header>
+    <canvas id="game"></canvas>
 
-        <div class="stats-bar">
-          <div class="stat">
-            <span class="stat-icon">⭐</span>
-            <span id="total-stars">0</span>
-          </div>
-          <div class="stat">
-            <span class="stat-icon">🔥</span>
-            <span id="streak">0</span>일
-          </div>
+    <div id="hud" class="hidden">
+      <div class="hud-row top">
+        <div class="hud-block">
+          <div class="label">SCORE</div>
+          <div id="score" class="value">0</div>
         </div>
-
-        <div id="level-map" class="level-map" role="list"></div>
-
-        <p class="home-tip">레벨을 클릭해서 모험을 시작하세요!</p>
-      </section>
-
-      <!-- ===== 퀴즈 화면 ===== -->
-      <section id="screen-quiz" class="screen">
-        <header class="quiz-header">
-          <button id="btn-back" class="btn-icon" aria-label="돌아가기">←</button>
-          <div class="quiz-progress">
-            <span id="level-label">Level 1</span>
-            <div class="progress-dots" id="progress-dots"></div>
-          </div>
-          <div class="quiz-score">
-            <span id="quiz-score">0</span>⭐
-          </div>
-        </header>
-
-        <div class="quiz-body">
-          <div class="hint-card">
-            <div id="word-emoji" class="word-emoji">🐕</div>
-            <p id="level-hint" class="level-hint">첫 글자를 들었어요!</p>
-            <button id="btn-sound" class="btn-sound" aria-label="소리 듣기">
-              <span class="sound-icon">🔊</span>
-              <span>다시 들어보기</span>
-            </button>
-          </div>
-
-          <div id="word-display" class="word-display" aria-live="polite"></div>
-
-          <div id="letter-bank" class="letter-bank"></div>
-
-          <div class="quiz-actions">
-            <button id="btn-clear" class="btn-secondary">지우기</button>
-            <button id="btn-check" class="btn-primary" disabled>확인!</button>
-          </div>
-
-          <div id="feedback" class="feedback hidden" aria-live="assertive"></div>
+        <div class="hud-block right">
+          <div class="label">WAVE</div>
+          <div id="wave" class="value">1</div>
         </div>
-      </section>
-
-      <!-- ===== 레벨 완료 ===== -->
-      <section id="screen-result" class="screen">
-        <div class="result-card">
-          <div id="result-emoji" class="result-emoji">🎉</div>
-          <h2 id="result-title">레벨 클리어!</h2>
-          <div id="result-stars" class="result-stars"></div>
-          <p id="result-message" class="result-message"></p>
-          <div class="result-actions">
-            <button id="btn-retry" class="btn-secondary">다시 하기</button>
-            <button id="btn-next" class="btn-primary">다음 레벨 →</button>
-            <button id="btn-home" class="btn-secondary">맵으로</button>
-          </div>
+      </div>
+      <div class="hud-row mid">
+        <div id="combo" class="combo hidden">
+          <span id="combo-x">x1</span>
+          <div id="combo-bar"><div id="combo-fill"></div></div>
         </div>
-      </section>
+      </div>
+      <div class="hud-row bottom">
+        <div class="hud-block">
+          <div class="label">BEST</div>
+          <div id="best" class="value">0</div>
+        </div>
+        <div id="lives" class="lives"></div>
+      </div>
     </div>
 
-    <canvas id="confetti" aria-hidden="true"></canvas>
-    <script src="app.js"></script>
+    <div id="overlay" class="overlay visible">
+      <div class="overlay-inner">
+        <h1 class="title">
+          <span class="title-glitch" data-text="DRIFT">DRIFT</span>
+        </h1>
+        <p class="sub">synthwave asteroids // endless</p>
+        <div class="how">
+          <p><span class="kbd">drag</span> anywhere to move</p>
+          <p>ship auto-aims &amp; fires</p>
+          <p>collect combo orbs to multiply score</p>
+        </div>
+        <p class="kb-how">keyboard: <span class="kbd">WASD</span> or <span class="kbd">arrows</span></p>
+        <button id="start" class="cta">START</button>
+        <div class="stats">
+          <div>BEST SCORE <span id="best-score-menu">0</span></div>
+          <div>BEST WAVE <span id="best-wave-menu">0</span></div>
+          <div>BEST COMBO <span id="best-combo-menu">0</span></div>
+        </div>
+      </div>
+    </div>
+
+    <div id="upgrade-screen" class="overlay">
+      <div class="overlay-inner">
+        <h2 class="upgrade-title">WAVE <span id="upgrade-wave">1</span> CLEAR</h2>
+        <p class="sub">choose an upgrade</p>
+        <div id="upgrade-cards" class="upgrade-cards"></div>
+      </div>
+    </div>
+
+    <div id="gameover-screen" class="overlay">
+      <div class="overlay-inner">
+        <h2 class="title">
+          <span class="title-glitch" data-text="GAME OVER">GAME OVER</span>
+        </h2>
+        <div class="stats big">
+          <div>SCORE <span id="go-score">0</span></div>
+          <div>WAVE <span id="go-wave">0</span></div>
+          <div>MAX COMBO <span id="go-combo">0</span></div>
+        </div>
+        <div id="new-record" class="new-record hidden">NEW RECORD</div>
+        <button id="retry" class="cta">RUN IT BACK</button>
+      </div>
+    </div>
+
+    <script src="game.js"></script>
   </body>
 </html>
