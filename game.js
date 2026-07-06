@@ -72,6 +72,8 @@
   let generation = "1";
   let pokemonPool = [];
   let nameCache = {};
+  let namesData = null;
+  let imageLoadToken = 0;
   let score = 0;
   let streak = 0;
   let maxStreak = 0;
@@ -125,143 +127,86 @@
     return pool;
   }
 
-  const FETCH_TIMEOUT = 6000;
+  const PLACEHOLDER = "placeholder.svg";
 
-  function fetchWithTimeout(url, options = {}, timeout = FETCH_TIMEOUT) {
-    const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), timeout);
-    return fetch(url, {
-      ...options,
-      signal: controller.signal,
-      referrerPolicy: "no-referrer",
-    }).finally(() => clearTimeout(timer));
+  async function loadNamesData() {
+    if (namesData) return namesData;
+    try {
+      const res = await fetch("names-ko.json");
+      namesData = await res.json();
+    } catch {
+      namesData = {};
+    }
+    return namesData;
   }
 
-  async function fetchKoreanName(id) {
+  function getKoreanName(id) {
     if (nameCache[id]) return nameCache[id];
-
-    try {
-      const res = await fetchWithTimeout(`https://pokeapi.co/api/v2/pokemon-species/${id}/`);
-      if (!res.ok) throw new Error("fetch failed");
-      const data = await res.json();
-      const ko = data.names.find((n) => n.language.name === "ko");
-      const name = ko ? ko.name : data.names.find((n) => n.language.name === "en").name;
-      nameCache[id] = name;
-      return name;
-    } catch {
-      const fallback = `포켓몬 #${id}`;
-      nameCache[id] = fallback;
-      return fallback;
-    }
+    const name = namesData?.[String(id)] || `포켓몬 #${id}`;
+    nameCache[id] = name;
+    return name;
   }
 
   function getImageUrls(id) {
+    const sprite = `raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${id}.png`;
+    const artwork = `raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/${id}.png`;
     return [
+      `https://wsrv.nl/?url=${encodeURIComponent(sprite)}&w=240`,
       `https://cdn.jsdelivr.net/gh/PokeAPI/sprites@master/sprites/pokemon/${id}.png`,
-      `https://cdn.jsdelivr.net/gh/PokeAPI/sprites@master/sprites/pokemon/other/official-artwork/${id}.png`,
+      `https://wsrv.nl/?url=${encodeURIComponent(artwork)}&w=240`,
       `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${id}.png`,
-      `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/${id}.png`,
+      PLACEHOLDER,
     ];
   }
 
-  async function fetchSpriteUrls(id) {
-    const staticUrls = getImageUrls(id);
-    try {
-      const res = await fetchWithTimeout(`https://pokeapi.co/api/v2/pokemon/${id}/`);
-      if (!res.ok) return staticUrls;
-      const data = await res.json();
-      const s = data.sprites;
-      const apiUrls = [
-        s.front_default,
-        s.other?.home?.front_default,
-        s.other?.["official-artwork"]?.front_default,
-      ].filter(Boolean);
-      return [...new Set([...apiUrls, ...staticUrls])];
-    } catch {
-      return staticUrls;
-    }
+  function hideImageLoader() {
+    els.imageLoader.classList.add("hidden");
   }
 
-  function revokeImageObjectUrl() {
-    const prev = els.pokemonImage.dataset.objectUrl;
-    if (prev) {
-      URL.revokeObjectURL(prev);
-      delete els.pokemonImage.dataset.objectUrl;
-    }
-  }
-
-  function applyImageSrc(src) {
-    return new Promise((resolve, reject) => {
-      const img = els.pokemonImage;
-      const timer = setTimeout(() => {
-        img.onload = null;
-        img.onerror = null;
-        reject(new Error("timeout"));
-      }, FETCH_TIMEOUT);
-
-      img.onload = () => {
-        clearTimeout(timer);
-        img.onload = null;
-        img.onerror = null;
-        resolve();
-      };
-      img.onerror = () => {
-        clearTimeout(timer);
-        img.onload = null;
-        img.onerror = null;
-        reject(new Error("error"));
-      };
-
-      revokeImageObjectUrl();
-      img.referrerPolicy = "no-referrer";
-      if (src.startsWith("blob:")) {
-        img.dataset.objectUrl = src;
-      }
-      img.src = src;
-    });
-  }
-
-  async function tryFetchBlob(url) {
-    const res = await fetchWithTimeout(url);
-    if (!res.ok) throw new Error("bad status");
-    const blob = await res.blob();
-    if (!blob.type.startsWith("image/")) throw new Error("not image");
-    return URL.createObjectURL(blob);
-  }
-
-  async function loadImage(id) {
+  function loadImage(id) {
+    const token = ++imageLoadToken;
     els.imageLoader.classList.remove("hidden");
     els.pokemonImage.style.opacity = "0";
 
-    const sources = await fetchSpriteUrls(id);
-    let loaded = false;
+    const urls = getImageUrls(id);
+    let index = 0;
 
-    for (const url of sources) {
-      try {
-        const blobUrl = await tryFetchBlob(url);
-        await applyImageSrc(blobUrl);
-        loaded = true;
-        break;
-      } catch {
-        /* try next */
+    const finish = (ok) => {
+      if (token !== imageLoadToken) return;
+      hideImageLoader();
+      els.pokemonImage.style.opacity = ok ? "1" : "0.5";
+    };
+
+    const hardLimit = setTimeout(() => {
+      if (token !== imageLoadToken) return;
+      if (els.pokemonImage.naturalWidth > 0) {
+        finish(true);
+      } else {
+        els.pokemonImage.src = PLACEHOLDER;
+        finish(false);
+      }
+    }, 4000);
+
+    const tryNext = () => {
+      if (token !== imageLoadToken) return;
+      if (index >= urls.length) {
+        clearTimeout(hardLimit);
+        els.pokemonImage.src = PLACEHOLDER;
+        els.pokemonImage.onload = () => finish(false);
+        return;
       }
 
-      try {
-        await applyImageSrc(url);
-        loaded = true;
-        break;
-      } catch {
-        /* try next */
-      }
-    }
+      const url = urls[index++];
+      els.pokemonImage.onload = () => {
+        clearTimeout(hardLimit);
+        finish(true);
+      };
+      els.pokemonImage.onerror = () => tryNext();
+      els.pokemonImage.referrerPolicy = "no-referrer";
+      els.pokemonImage.src = url;
+    };
 
-    if (!loaded) {
-      revokeImageObjectUrl();
-      els.pokemonImage.removeAttribute("src");
-    }
-
-    els.pokemonImage.style.opacity = loaded ? "1" : "0.3";
-    els.imageLoader.classList.add("hidden");
+    tryNext();
   }
 
   function pickRandom(arr, count, exclude) {
@@ -319,8 +264,9 @@
     els.pokemonNumber.textContent = `#${String(id).padStart(3, "0")}`;
     applyDifficultyVisuals();
 
-    await Promise.all([loadImage(id), ...roundIds.map((pid) => fetchKoreanName(pid))]);
+    loadImage(id);
 
+    roundIds.forEach((pid) => getKoreanName(pid));
     currentPokemon = { id, name: nameCache[id] };
 
     const options = shuffle([
@@ -601,6 +547,7 @@
   async function startGame() {
     resetGameState();
     pokemonPool = buildPool(generation);
+    await loadNamesData();
     showScreen("game");
     await startRound();
   }
