@@ -31,7 +31,7 @@
             <button class="diff-btn" data-diff="normal">보통</button>
             <button class="diff-btn" data-diff="hard">어려움</button>
           </div>
-          <p class="diff-hint" id="diff-hint">1세대 · 컬러 이미지</p>
+          <p class="diff-hint" id="diff-hint">컬러 이미지 · 번호 표시 · ×1</p>
         </div>
 
         <div class="difficulty-picker">
@@ -46,8 +46,22 @@
 
         <button id="start-btn" class="cta">게임 시작</button>
 
-        <div class="best-score">
-          최고 점수 <span id="best-score">0</span>
+        <div class="best-scores">
+          <p class="picker-label">최고 점수</p>
+          <div class="best-scores-grid">
+            <div class="best-score-item active" data-diff="easy">
+              <span class="best-diff-label">쉬움</span>
+              <span id="best-easy" class="best-diff-value">0</span>
+            </div>
+            <div class="best-score-item" data-diff="normal">
+              <span class="best-diff-label">보통</span>
+              <span id="best-normal" class="best-diff-value">0</span>
+            </div>
+            <div class="best-score-item" data-diff="hard">
+              <span class="best-diff-label">어려움</span>
+              <span id="best-hard" class="best-diff-value">0</span>
+            </div>
+          </div>
         </div>
       </div>
     </section>

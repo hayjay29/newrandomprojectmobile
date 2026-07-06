@@ -9,12 +9,13 @@
   };
 
   const DIFF_HINTS = {
-    easy: "컬러 이미지 · 번호 표시",
-    normal: "컬러 이미지 · 번호 숨김",
-    hard: "실루엣 · 번호 숨김",
+    easy: "컬러 이미지 · 번호 표시 · ×1",
+    normal: "컬러 이미지 · 번호 숨김 · ×1.5",
+    hard: "실루엣 · 번호 숨김 · ×2",
   };
 
   const DIFF_LABELS = { easy: "쉬움", normal: "보통", hard: "어려움" };
+  const DIFF_MULTIPLIERS = { easy: 1, normal: 1.5, hard: 2 };
   const GEN_LABELS = { 1: "1세대", 2: "2세대", 3: "3세대", all: "전체" };
   const SHARE_URL = "https://hayjay29.github.io/newrandomprojectmobile/";
 
@@ -22,7 +23,8 @@
   const BASE_SCORE = 10;
   const STREAK_BONUS = 5;
   const ANSWER_DELAY = 1200;
-  const STORAGE_KEY = "pokemon-guess-best";
+  const STORAGE_KEY_PREFIX = "pokemon-guess-best-";
+  const LEGACY_STORAGE_KEY = "pokemon-guess-best";
 
   const $ = (sel) => document.querySelector(sel);
   const $$ = (sel) => document.querySelectorAll(sel);
@@ -53,7 +55,9 @@
     finalCorrect: $("#final-correct"),
     finalStreak: $("#final-streak"),
     newRecord: $("#new-record"),
-    bestScore: $("#best-score"),
+    bestEasy: $("#best-easy"),
+    bestNormal: $("#best-normal"),
+    bestHard: $("#best-hard"),
     diffHint: $("#diff-hint"),
     shareBtn: $("#share-btn"),
     shareModal: $("#share-modal"),
@@ -83,16 +87,34 @@
     screens[name].classList.add("active");
   }
 
-  function getBestScore() {
-    return parseInt(localStorage.getItem(STORAGE_KEY) || "0", 10);
+  function getBestScore(diff) {
+    return parseInt(localStorage.getItem(STORAGE_KEY_PREFIX + diff) || "0", 10);
   }
 
-  function saveBestScore(val) {
-    localStorage.setItem(STORAGE_KEY, String(val));
+  function saveBestScore(diff, val) {
+    localStorage.setItem(STORAGE_KEY_PREFIX + diff, String(val));
+  }
+
+  function migrateLegacyBest() {
+    const legacy = localStorage.getItem(LEGACY_STORAGE_KEY);
+    if (legacy && !localStorage.getItem(STORAGE_KEY_PREFIX + "easy")) {
+      localStorage.setItem(STORAGE_KEY_PREFIX + "easy", legacy);
+    }
   }
 
   function updateBestDisplay() {
-    els.bestScore.textContent = getBestScore();
+    els.bestEasy.textContent = getBestScore("easy");
+    els.bestNormal.textContent = getBestScore("normal");
+    els.bestHard.textContent = getBestScore("hard");
+
+    $$(".best-score-item").forEach((item) => {
+      item.classList.toggle("active", item.dataset.diff === difficulty);
+    });
+  }
+
+  function calcPoints(streakCount) {
+    const base = BASE_SCORE + (streakCount - 1) * STREAK_BONUS;
+    return Math.round(base * DIFF_MULTIPLIERS[difficulty]);
   }
 
   function buildPool(gen) {
@@ -240,7 +262,7 @@
       btn.classList.add("correct");
       streak++;
       if (streak > maxStreak) maxStreak = streak;
-      const points = BASE_SCORE + (streak - 1) * STREAK_BONUS;
+      const points = calcPoints(streak);
       score += points;
       correctCount++;
 
@@ -277,11 +299,11 @@
   }
 
   function endGame() {
-    const best = getBestScore();
+    const best = getBestScore(difficulty);
     const isNewRecord = score > best;
 
     if (isNewRecord) {
-      saveBestScore(score);
+      saveBestScore(difficulty, score);
       updateBestDisplay();
     }
 
@@ -297,6 +319,7 @@
     els.finalScore.textContent = score;
     els.finalCorrect.textContent = correctCount;
     els.finalStreak.textContent = maxStreak;
+    els.newRecord.textContent = `🏆 ${DIFF_LABELS[difficulty]} 신기록!`;
     els.newRecord.classList.toggle("hidden", !isNewRecord);
 
     showScreen("gameover");
@@ -407,7 +430,8 @@
     ctx.font = "18px 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif";
     const diffLabel = DIFF_LABELS[result.difficulty] || result.difficulty;
     const genLabel = GEN_LABELS[result.generation] || result.generation;
-    ctx.fillText(`${diffLabel} · ${genLabel}`, W / 2, cardY + 30);
+    const mult = DIFF_MULTIPLIERS[result.difficulty] || 1;
+    ctx.fillText(`${diffLabel} ×${mult} · ${genLabel}`, W / 2, cardY + 30);
 
     ctx.fillStyle = "#4cc9f0";
     ctx.font = "16px 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif";
@@ -507,6 +531,7 @@
       btn.classList.add("active");
       difficulty = btn.dataset.diff;
       els.diffHint.textContent = DIFF_HINTS[difficulty];
+      updateBestDisplay();
     });
   });
 
@@ -527,5 +552,6 @@
   els.shareCloseBtn.addEventListener("click", closeShareModal);
   els.shareModal.querySelector(".share-modal-backdrop").addEventListener("click", closeShareModal);
 
+  migrateLegacyBest();
   updateBestDisplay();
 })();
