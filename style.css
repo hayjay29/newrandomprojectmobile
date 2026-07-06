@@ -365,7 +365,15 @@ body {
 
 /* ============ Question Area ============ */
 #game-screen {
-  gap: 12px;
+  gap: 10px;
+}
+
+body.in-game .site-footer {
+  display: none;
+}
+
+body.in-game .screen {
+  padding-bottom: max(env(safe-area-inset-bottom), 16px);
 }
 
 .question-area {
@@ -521,15 +529,22 @@ body {
 /* ============ Feedback ============ */
 .feedback {
   text-align: center;
-  padding: 8px 12px;
+  padding: 10px 12px;
   border-radius: 12px;
-  transition: opacity 0.3s ease;
+  transition: opacity 0.3s ease, padding 0.3s ease, margin 0.3s ease;
   flex-shrink: 0;
-  min-height: 2.5rem;
+  width: 100%;
+  max-width: 480px;
+  margin: 0 auto;
 }
 
 .feedback.hidden {
   opacity: 0;
+  padding: 0;
+  margin: 0;
+  min-height: 0;
+  overflow: hidden;
+  pointer-events: none;
 }
 
 .feedback.correct-fb {
