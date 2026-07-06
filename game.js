@@ -17,7 +17,7 @@
   const DIFF_LABELS = { easy: "쉬움", normal: "보통", hard: "어려움" };
   const DIFF_MULTIPLIERS = { easy: 1, normal: 1.5, hard: 2 };
   const GEN_LABELS = { 1: "1세대", 2: "2세대", 3: "3세대", all: "전체" };
-  const SHARE_URL = "https://hayjay29.github.io/newrandomprojectmobile/";
+  const SHARE_URL = "https://brr.kr/17lhxh";
 
   const LIVES_MAX = 3;
   const BASE_SCORE = 10;
