@@ -13,7 +13,7 @@
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
     <meta http-equiv="Pragma" content="no-cache" />
     <title>포켓몬 이름 맞히기</title>
-    <link rel="stylesheet" href="style.css?v=8" />
+    <link rel="stylesheet" href="style.css?v=9" />
   </head>
   <body>
   <div id="app">
@@ -100,6 +100,12 @@
             <img id="pokemon-image" src="" alt="포켓몬" referrerpolicy="no-referrer" decoding="async" />
             <div id="image-loader" class="image-loader hidden">
               <div class="pokeball small spinning" aria-hidden="true"></div>
+            </div>
+            <div id="image-fallback" class="image-fallback hidden">
+              <div class="pokeball small" aria-hidden="true"></div>
+              <p class="fallback-text">이미지를 불러오지 못했어요</p>
+              <button type="button" id="retry-image-btn" class="retry-image-btn">다시 불러오기</button>
+              <p class="fallback-hint">보기를 선택하면 계속 플레이할 수 있어요</p>
             </div>
           </div>
           <div id="pokemon-number" class="pokemon-number">#???</div>

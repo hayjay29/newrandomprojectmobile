@@ -401,20 +401,20 @@ body.in-game .screen {
 
 .pokemon-card {
   background: linear-gradient(145deg, var(--bg-2), var(--bg-card));
-  border-radius: 20px;
-  padding: 12px 16px;
+  border-radius: 24px;
+  padding: 20px;
   width: 100%;
-  max-width: 280px;
+  max-width: 320px;
   box-shadow: 0 8px 32px var(--shadow);
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 6px;
+  gap: 8px;
 }
 
 .pokemon-image-wrap {
-  width: 140px;
-  height: 140px;
+  width: 200px;
+  height: 200px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -429,10 +429,51 @@ body.in-game .screen {
   image-rendering: pixelated;
 }
 
-.pokemon-image-wrap img.is-placeholder {
-  width: 64px;
-  height: 64px;
-  image-rendering: auto;
+.pokemon-image-wrap img.hidden-img {
+  opacity: 0;
+  visibility: hidden;
+}
+
+.image-fallback {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 12px;
+  text-align: center;
+}
+
+.image-fallback.hidden {
+  display: none;
+}
+
+.fallback-text {
+  margin: 0;
+  font-size: 0.85rem;
+  color: var(--text-dim);
+  font-weight: 600;
+}
+
+.fallback-hint {
+  margin: 0;
+  font-size: 0.72rem;
+  color: rgba(160, 160, 184, 0.85);
+  line-height: 1.3;
+}
+
+.retry-image-btn {
+  padding: 8px 14px;
+  border: 2px solid var(--blue);
+  border-radius: 20px;
+  background: rgba(76, 201, 240, 0.12);
+  color: var(--blue);
+  font-size: 0.8rem;
+  font-weight: 700;
+  font-family: inherit;
+  cursor: pointer;
 }
 
 .pokemon-image-wrap.silhouette img {

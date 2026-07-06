@@ -48,6 +48,8 @@
     pokemonImageWrap: $("#pokemon-image-wrap"),
     pokemonNumber: $("#pokemon-number"),
     imageLoader: $("#image-loader"),
+    imageFallback: $("#image-fallback"),
+    retryImageBtn: $("#retry-image-btn"),
     choices: $("#choices"),
     feedback: $("#feedback"),
     feedbackText: $("#feedback-text"),
@@ -83,6 +85,7 @@
   let answering = false;
   let lastResult = null;
   let shareBlob = null;
+  let currentImageId = null;
 
   function showScreen(name) {
     Object.values(screens).forEach((s) => s.classList.remove("active"));
@@ -127,12 +130,6 @@
     return pool;
   }
 
-  const PLACEHOLDER =
-    "data:image/svg+xml," +
-    encodeURIComponent(
-      '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><circle cx="50" cy="50" r="22" fill="#1f2f58"/><defs><linearGradient id="g" x1="50" y1="28" x2="50" y2="72" gradientUnits="userSpaceOnUse"><stop offset="0" stop-color="#e94560"/><stop offset="46%" stop-color="#e94560"/><stop offset="46%" stop-color="#333"/><stop offset="54%" stop-color="#333"/><stop offset="54%" stop-color="#fff"/><stop offset="1" stop-color="#fff"/></linearGradient></defs><circle cx="50" cy="50" r="18" fill="url(#g)"/><rect x="32" y="48" width="36" height="4" fill="#333"/><circle cx="50" cy="50" r="6" fill="#fff" stroke="#333" stroke-width="2"/></svg>'
-    );
-
   async function loadNamesData() {
     if (namesData) return namesData;
     try {
@@ -155,12 +152,18 @@
     const sprite = `raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${id}.png`;
     const artwork = `raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/${id}.png`;
     return [
-      `https://wsrv.nl/?url=${encodeURIComponent(sprite)}&w=240`,
+      `https://wsrv.nl/?url=${encodeURIComponent(artwork)}&w=400&output=png`,
+      `https://wsrv.nl/?url=${encodeURIComponent(sprite)}&w=400&output=png`,
+      `https://cdn.jsdelivr.net/gh/PokeAPI/sprites@master/sprites/pokemon/other/official-artwork/${id}.png`,
       `https://cdn.jsdelivr.net/gh/PokeAPI/sprites@master/sprites/pokemon/${id}.png`,
-      `https://wsrv.nl/?url=${encodeURIComponent(artwork)}&w=240`,
+      `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/${id}.png`,
       `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${id}.png`,
-      PLACEHOLDER,
     ];
+  }
+
+  function showImageFallback(show) {
+    els.imageFallback.classList.toggle("hidden", !show);
+    els.pokemonImage.classList.toggle("hidden-img", show);
   }
 
   function hideImageLoader() {
@@ -168,8 +171,11 @@
   }
 
   function loadImage(id) {
+    currentImageId = id;
     const token = ++imageLoadToken;
     const img = els.pokemonImage;
+
+    showImageFallback(false);
     els.imageLoader.classList.remove("hidden");
     img.style.opacity = "0";
 
@@ -179,34 +185,36 @@
     const finish = (ok) => {
       if (token !== imageLoadToken) return;
       hideImageLoader();
-      img.classList.toggle("is-placeholder", !ok);
-      img.style.opacity = ok ? "1" : "0.55";
+      if (ok) {
+        showImageFallback(false);
+        img.style.opacity = "1";
+      } else {
+        img.removeAttribute("src");
+        img.style.opacity = "0";
+        showImageFallback(true);
+      }
     };
 
     const hardLimit = setTimeout(() => {
       if (token !== imageLoadToken) return;
-      if (img.complete && img.naturalWidth > 0 && img.src !== PLACEHOLDER) {
+      if (img.complete && img.naturalWidth > 0) {
         finish(true);
         return;
       }
-      img.onload = () => finish(false);
-      img.onerror = () => finish(false);
-      img.src = PLACEHOLDER;
-    }, 2500);
+      finish(false);
+    }, 8000);
 
     const tryNext = () => {
       if (token !== imageLoadToken) return;
       if (index >= urls.length) {
         clearTimeout(hardLimit);
-        img.src = PLACEHOLDER;
-        img.onload = () => finish(false);
+        finish(false);
         return;
       }
 
       const url = urls[index++];
       img.onload = () => {
         clearTimeout(hardLimit);
-        img.classList.remove("is-placeholder");
         finish(true);
       };
       img.onerror = () => tryNext();
