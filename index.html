@@ -1,91 +1,157 @@
 <!doctype html>
-<html lang="en">
+<html lang="ko">
   <head>
     <meta charset="utf-8" />
     <meta
       name="viewport"
       content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no"
     />
-    <meta name="theme-color" content="#0a0418" />
+    <meta name="theme-color" content="#1a1a2e" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-    <title>DRIFT // synthwave asteroids</title>
+    <title>포켓몬 이름 맞히기</title>
     <link rel="stylesheet" href="style.css" />
   </head>
   <body>
-    <canvas id="game"></canvas>
+  <div id="app">
+    <!-- 시작 화면 -->
+    <section id="start-screen" class="screen active">
+      <div class="screen-inner">
+        <div class="logo">
+          <div class="pokeball" aria-hidden="true"></div>
+          <h1>포켓몬<br />이름 맞히기</h1>
+        </div>
+        <p class="subtitle">이미지를 보고 포켓몬 이름을 맞혀보세요!</p>
 
-    <div id="hud" class="hidden">
-      <div class="hud-row top">
-        <div class="hud-block">
-          <div class="label">SCORE</div>
-          <div id="score" class="value">0</div>
+        <div class="difficulty-picker">
+          <p class="picker-label">난이도</p>
+          <div class="difficulty-btns">
+            <button class="diff-btn active" data-diff="easy">쉬움</button>
+            <button class="diff-btn" data-diff="normal">보통</button>
+            <button class="diff-btn" data-diff="hard">어려움</button>
+          </div>
+          <p class="diff-hint" id="diff-hint">컬러 이미지 · 번호 표시 · ×1</p>
         </div>
-        <div class="hud-block right">
-          <div class="label">WAVE</div>
-          <div id="wave" class="value">1</div>
+
+        <div class="difficulty-picker">
+          <p class="picker-label">세대</p>
+          <div class="difficulty-btns gen-btns">
+            <button class="gen-btn active" data-gen="1">1</button>
+            <button class="gen-btn" data-gen="2">2</button>
+            <button class="gen-btn" data-gen="3">3</button>
+            <button class="gen-btn" data-gen="all">전체</button>
+          </div>
+        </div>
+
+        <button id="start-btn" class="cta">게임 시작</button>
+
+        <div class="best-scores">
+          <p class="picker-label">최고 점수</p>
+          <div class="best-scores-grid">
+            <div class="best-score-item active" data-diff="easy">
+              <span class="best-diff-label">쉬움</span>
+              <span id="best-easy" class="best-diff-value">0</span>
+            </div>
+            <div class="best-score-item" data-diff="normal">
+              <span class="best-diff-label">보통</span>
+              <span id="best-normal" class="best-diff-value">0</span>
+            </div>
+            <div class="best-score-item" data-diff="hard">
+              <span class="best-diff-label">어려움</span>
+              <span id="best-hard" class="best-diff-value">0</span>
+            </div>
+          </div>
         </div>
       </div>
-      <div class="hud-row mid">
-        <div id="combo" class="combo hidden">
-          <span id="combo-x">x1</span>
-          <div id="combo-bar"><div id="combo-fill"></div></div>
+    </section>
+
+    <!-- 로딩 화면 -->
+    <section id="loading-screen" class="screen">
+      <div class="screen-inner center">
+        <div class="pokeball spinning" aria-hidden="true"></div>
+        <p id="loading-text">포켓몬 데이터 불러오는 중...</p>
+      </div>
+    </section>
+
+    <!-- 게임 화면 -->
+    <section id="game-screen" class="screen">
+      <header class="game-header">
+        <div class="stat">
+          <span class="stat-label">점수</span>
+          <span id="score" class="stat-value">0</span>
+        </div>
+        <div class="stat center">
+          <span class="stat-label">연속</span>
+          <span id="streak" class="stat-value streak">0</span>
+        </div>
+        <div class="stat right">
+          <span class="stat-label">목숨</span>
+          <div id="lives" class="lives"></div>
+        </div>
+      </header>
+
+      <div class="question-area">
+        <p class="question-label">이 포켓몬의 이름은?</p>
+        <div class="pokemon-card">
+          <div id="pokemon-image-wrap" class="pokemon-image-wrap">
+            <img id="pokemon-image" src="" alt="포켓몬" />
+            <div id="image-loader" class="image-loader hidden">
+              <div class="pokeball small spinning" aria-hidden="true"></div>
+            </div>
+          </div>
+          <div id="pokemon-number" class="pokemon-number">#???</div>
         </div>
       </div>
-      <div class="hud-row bottom">
-        <div class="hud-block">
-          <div class="label">BEST</div>
-          <div id="best" class="value">0</div>
+
+      <div id="choices" class="choices"></div>
+
+      <div id="feedback" class="feedback hidden">
+        <p id="feedback-text"></p>
+      </div>
+    </section>
+
+    <!-- 게임 오버 화면 -->
+    <section id="gameover-screen" class="screen">
+      <div class="screen-inner">
+        <h2 class="gameover-title">게임 종료!</h2>
+        <div class="result-stats">
+          <div class="result-stat">
+            <span class="result-label">최종 점수</span>
+            <span id="final-score" class="result-value">0</span>
+          </div>
+          <div class="result-stat">
+            <span class="result-label">맞힌 문제</span>
+            <span id="final-correct" class="result-value">0</span>
+          </div>
+          <div class="result-stat">
+            <span class="result-label">최대 연속</span>
+            <span id="final-streak" class="result-value">0</span>
+          </div>
         </div>
-        <div id="lives" class="lives"></div>
+        <div id="new-record" class="new-record hidden">🏆 신기록!</div>
+        <button id="share-btn" class="cta share">📸 결과 이미지 공유</button>
+        <button id="retry-btn" class="cta">다시 하기</button>
+        <button id="menu-btn" class="cta secondary">메인으로</button>
+      </div>
+    </section>
+
+    <!-- 공유 미리보기 -->
+    <div id="share-modal" class="share-modal hidden">
+      <div class="share-modal-backdrop"></div>
+      <div class="share-modal-content">
+        <h3 class="share-modal-title">결과 이미지</h3>
+        <img id="share-preview" alt="게임 결과" />
+        <div class="share-modal-actions">
+          <button id="share-confirm-btn" class="cta">공유하기</button>
+          <button id="share-download-btn" class="cta secondary">저장하기</button>
+          <button id="share-close-btn" class="cta secondary">닫기</button>
+        </div>
       </div>
     </div>
+  </div>
 
-    <div id="overlay" class="overlay visible">
-      <div class="overlay-inner">
-        <h1 class="title">
-          <span class="title-glitch" data-text="DRIFT">DRIFT</span>
-        </h1>
-        <p class="sub">synthwave asteroids // endless</p>
-        <div class="how">
-          <p><span class="kbd">drag</span> anywhere to move</p>
-          <p>ship auto-aims &amp; fires</p>
-          <p>collect combo orbs to multiply score</p>
-        </div>
-        <p class="kb-how">keyboard: <span class="kbd">WASD</span> or <span class="kbd">arrows</span></p>
-        <button id="start" class="cta">START</button>
-        <div class="stats">
-          <div>BEST SCORE <span id="best-score-menu">0</span></div>
-          <div>BEST WAVE <span id="best-wave-menu">0</span></div>
-          <div>BEST COMBO <span id="best-combo-menu">0</span></div>
-        </div>
-      </div>
-    </div>
-
-    <div id="upgrade-screen" class="overlay">
-      <div class="overlay-inner">
-        <h2 class="upgrade-title">WAVE <span id="upgrade-wave">1</span> CLEAR</h2>
-        <p class="sub">choose an upgrade</p>
-        <div id="upgrade-cards" class="upgrade-cards"></div>
-      </div>
-    </div>
-
-    <div id="gameover-screen" class="overlay">
-      <div class="overlay-inner">
-        <h2 class="title">
-          <span class="title-glitch" data-text="GAME OVER">GAME OVER</span>
-        </h2>
-        <div class="stats big">
-          <div>SCORE <span id="go-score">0</span></div>
-          <div>WAVE <span id="go-wave">0</span></div>
-          <div>MAX COMBO <span id="go-combo">0</span></div>
-        </div>
-        <div id="new-record" class="new-record hidden">NEW RECORD</div>
-        <button id="retry" class="cta">RUN IT BACK</button>
-      </div>
-    </div>
-
-    <script src="game.js"></script>
+  <canvas id="share-canvas" hidden></canvas>
+  <script src="game.js"></script>
   </body>
 </html>
