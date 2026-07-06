@@ -127,12 +127,16 @@
     return pool;
   }
 
-  const PLACEHOLDER = "placeholder.svg";
+  const PLACEHOLDER =
+    "data:image/svg+xml," +
+    encodeURIComponent(
+      '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><defs><linearGradient id="g" x1="50" y1="2" x2="50" y2="98" gradientUnits="userSpaceOnUse"><stop offset="0" stop-color="#e94560"/><stop offset="46%" stop-color="#e94560"/><stop offset="46%" stop-color="#333"/><stop offset="54%" stop-color="#333"/><stop offset="54%" stop-color="#fff"/><stop offset="1" stop-color="#fff"/></linearGradient></defs><circle cx="50" cy="50" r="48" fill="url(#g)"/><rect x="2" y="46" width="96" height="8" fill="#333"/><circle cx="50" cy="50" r="14" fill="#fff" stroke="#333" stroke-width="4"/></svg>'
+    );
 
   async function loadNamesData() {
     if (namesData) return namesData;
     try {
-      const res = await fetch("names-ko.json");
+      const res = await fetch(`names-ko.json?v=6`);
       namesData = await res.json();
     } catch {
       namesData = {};
@@ -165,8 +169,9 @@
 
   function loadImage(id) {
     const token = ++imageLoadToken;
+    const img = els.pokemonImage;
     els.imageLoader.classList.remove("hidden");
-    els.pokemonImage.style.opacity = "0";
+    img.style.opacity = "0";
 
     const urls = getImageUrls(id);
     let index = 0;
@@ -174,36 +179,37 @@
     const finish = (ok) => {
       if (token !== imageLoadToken) return;
       hideImageLoader();
-      els.pokemonImage.style.opacity = ok ? "1" : "0.5";
+      img.style.opacity = ok ? "1" : "0.55";
     };
 
     const hardLimit = setTimeout(() => {
       if (token !== imageLoadToken) return;
-      if (els.pokemonImage.naturalWidth > 0) {
+      if (img.complete && img.naturalWidth > 0 && img.src !== PLACEHOLDER) {
         finish(true);
-      } else {
-        els.pokemonImage.src = PLACEHOLDER;
-        finish(false);
+        return;
       }
-    }, 4000);
+      img.onload = () => finish(false);
+      img.onerror = () => finish(false);
+      img.src = PLACEHOLDER;
+    }, 2500);
 
     const tryNext = () => {
       if (token !== imageLoadToken) return;
       if (index >= urls.length) {
         clearTimeout(hardLimit);
-        els.pokemonImage.src = PLACEHOLDER;
-        els.pokemonImage.onload = () => finish(false);
+        img.src = PLACEHOLDER;
+        img.onload = () => finish(false);
         return;
       }
 
       const url = urls[index++];
-      els.pokemonImage.onload = () => {
+      img.onload = () => {
         clearTimeout(hardLimit);
         finish(true);
       };
-      els.pokemonImage.onerror = () => tryNext();
-      els.pokemonImage.referrerPolicy = "no-referrer";
-      els.pokemonImage.src = url;
+      img.onerror = () => tryNext();
+      img.referrerPolicy = "no-referrer";
+      img.src = url;
     };
 
     tryNext();
@@ -252,7 +258,7 @@
     }
   }
 
-  async function startRound() {
+  function startRound() {
     answering = false;
     els.feedback.classList.add("hidden");
     els.choices.innerHTML = "";
@@ -260,11 +266,6 @@
     const id = pokemonPool[Math.floor(Math.random() * pokemonPool.length)];
     const wrongIds = pickRandom(pokemonPool, 3, id);
     const roundIds = [id, ...wrongIds];
-
-    els.pokemonNumber.textContent = `#${String(id).padStart(3, "0")}`;
-    applyDifficultyVisuals();
-
-    loadImage(id);
 
     roundIds.forEach((pid) => getKoreanName(pid));
     currentPokemon = { id, name: nameCache[id] };
@@ -282,6 +283,10 @@
       btn.addEventListener("click", () => handleAnswer(btn, opt.id));
       els.choices.appendChild(btn);
     });
+
+    els.pokemonNumber.textContent = `#${String(id).padStart(3, "0")}`;
+    applyDifficultyVisuals();
+    loadImage(id);
   }
 
   function handleAnswer(btn, chosenId) {
@@ -544,12 +549,11 @@
     renderLives();
   }
 
-  async function startGame() {
+  function startGame() {
     resetGameState();
     pokemonPool = buildPool(generation);
-    await loadNamesData();
     showScreen("game");
-    await startRound();
+    startRound();
   }
 
   $$(".diff-btn").forEach((btn) => {
@@ -581,4 +585,5 @@
 
   migrateLegacyBest();
   updateBestDisplay();
+  loadNamesData();
 })();
