@@ -429,6 +429,12 @@ body.in-game .screen {
   image-rendering: pixelated;
 }
 
+.pokemon-image-wrap img.is-placeholder {
+  width: 64px;
+  height: 64px;
+  image-rendering: auto;
+}
+
 .pokemon-image-wrap.silhouette img {
   filter: brightness(0) saturate(100%);
   opacity: 0.85;

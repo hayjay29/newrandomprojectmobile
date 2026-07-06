@@ -130,7 +130,7 @@
   const PLACEHOLDER =
     "data:image/svg+xml," +
     encodeURIComponent(
-      '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><defs><linearGradient id="g" x1="50" y1="2" x2="50" y2="98" gradientUnits="userSpaceOnUse"><stop offset="0" stop-color="#e94560"/><stop offset="46%" stop-color="#e94560"/><stop offset="46%" stop-color="#333"/><stop offset="54%" stop-color="#333"/><stop offset="54%" stop-color="#fff"/><stop offset="1" stop-color="#fff"/></linearGradient></defs><circle cx="50" cy="50" r="48" fill="url(#g)"/><rect x="2" y="46" width="96" height="8" fill="#333"/><circle cx="50" cy="50" r="14" fill="#fff" stroke="#333" stroke-width="4"/></svg>'
+      '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><circle cx="50" cy="50" r="22" fill="#1f2f58"/><defs><linearGradient id="g" x1="50" y1="28" x2="50" y2="72" gradientUnits="userSpaceOnUse"><stop offset="0" stop-color="#e94560"/><stop offset="46%" stop-color="#e94560"/><stop offset="46%" stop-color="#333"/><stop offset="54%" stop-color="#333"/><stop offset="54%" stop-color="#fff"/><stop offset="1" stop-color="#fff"/></linearGradient></defs><circle cx="50" cy="50" r="18" fill="url(#g)"/><rect x="32" y="48" width="36" height="4" fill="#333"/><circle cx="50" cy="50" r="6" fill="#fff" stroke="#333" stroke-width="2"/></svg>'
     );
 
   async function loadNamesData() {
@@ -179,6 +179,7 @@
     const finish = (ok) => {
       if (token !== imageLoadToken) return;
       hideImageLoader();
+      img.classList.toggle("is-placeholder", !ok);
       img.style.opacity = ok ? "1" : "0.55";
     };
 
@@ -205,6 +206,7 @@
       const url = urls[index++];
       img.onload = () => {
         clearTimeout(hardLimit);
+        img.classList.remove("is-placeholder");
         finish(true);
       };
       img.onerror = () => tryNext();
@@ -318,10 +320,10 @@
       els.score.textContent = score;
       els.streak.textContent = streak;
 
-      els.feedback.className = "feedback correct-fb";
-      els.feedbackText.textContent =
-        streak > 1 ? `정답! +${points}점 (${streak}연속!)` : `정답! +${points}점`;
-      els.feedback.classList.remove("hidden");
+      showFeedback(
+        "correct-fb",
+        streak > 1 ? `정답! +${points}점 (${streak}연속!)` : `정답! +${points}점`
+      );
 
       setTimeout(() => startRound(), ANSWER_DELAY);
     } else {
@@ -335,12 +337,13 @@
       els.streak.textContent = streak;
       renderLives();
 
-      els.feedback.className = "feedback wrong-fb";
-      els.feedbackText.textContent = `틀렸어요! 정답은 ${currentPokemon.name}`;
-      els.feedback.classList.remove("hidden");
+      showFeedback("wrong-fb", `틀렸어요! 정답은 ${currentPokemon.name}`);
 
       if (lives <= 0) {
-        setTimeout(() => endGame(), ANSWER_DELAY);
+        setTimeout(() => {
+          clearFeedback();
+          endGame();
+        }, ANSWER_DELAY);
       } else {
         setTimeout(() => startRound(), ANSWER_DELAY);
       }
