@@ -153,12 +153,13 @@
     }
   }
 
-  function getImageUrl(id) {
-    return `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/${id}.png`;
-  }
-
-  function getFallbackImageUrl(id) {
-    return `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${id}.png`;
+  function getImageUrls(id) {
+    return [
+      `https://cdn.jsdelivr.net/gh/PokeAPI/sprites@master/sprites/pokemon/other/official-artwork/${id}.png`,
+      `https://cdn.jsdelivr.net/gh/PokeAPI/sprites@master/sprites/pokemon/${id}.png`,
+      `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/${id}.png`,
+      `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${id}.png`,
+    ];
   }
 
   function loadImage(id) {
@@ -166,17 +167,36 @@
       els.imageLoader.classList.remove("hidden");
       els.pokemonImage.style.opacity = "0";
 
-      const img = new Image();
-      img.onload = () => {
-        els.pokemonImage.src = img.src;
-        els.pokemonImage.style.opacity = "1";
+      const sources = getImageUrls(id);
+      let attempt = 0;
+
+      const finish = (src) => {
+        clearTimeout(timer);
+        if (src) {
+          els.pokemonImage.src = src;
+          els.pokemonImage.style.opacity = "1";
+        } else {
+          els.pokemonImage.removeAttribute("src");
+          els.pokemonImage.style.opacity = "0.3";
+        }
         els.imageLoader.classList.add("hidden");
         resolve();
       };
+
+      const timer = setTimeout(() => finish(null), 12000);
+
+      const img = new Image();
+      img.referrerPolicy = "no-referrer";
+      img.onload = () => finish(img.src);
       img.onerror = () => {
-        img.src = getFallbackImageUrl(id);
+        attempt++;
+        if (attempt < sources.length) {
+          img.src = sources[attempt];
+        } else {
+          finish(null);
+        }
       };
-      img.src = getImageUrl(id);
+      img.src = sources[0];
     });
   }
 
@@ -433,6 +453,10 @@
     const genLabel = GEN_LABELS[result.generation] || result.generation;
     const mult = DIFF_MULTIPLIERS[result.difficulty] || 1;
     ctx.fillText(`${diffLabel} ×${mult} · ${genLabel}`, W / 2, cardY + 30);
+
+    ctx.fillStyle = "#4cc9f0";
+    ctx.font = "16px 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif";
+    ctx.fillText(SHARE_URL, W / 2, H - 40);
 
     return canvas;
   }
