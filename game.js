@@ -258,9 +258,19 @@
     }
   }
 
+  function clearFeedback() {
+    els.feedback.className = "feedback hidden";
+    els.feedbackText.textContent = "";
+  }
+
+  function showFeedback(type, text) {
+    els.feedback.className = `feedback ${type}`;
+    els.feedbackText.textContent = text;
+  }
+
   function startRound() {
+    clearFeedback();
     answering = false;
-    els.feedback.classList.add("hidden");
     els.choices.innerHTML = "";
 
     const id = pokemonPool[Math.floor(Math.random() * pokemonPool.length)];
