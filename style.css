@@ -551,6 +551,72 @@ body {
   display: none;
 }
 
+.cta.share {
+  background: linear-gradient(135deg, var(--blue), #3a86c9);
+  box-shadow: 0 4px 20px rgba(76, 201, 240, 0.35);
+}
+
+/* ============ Share Modal ============ */
+.share-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: max(env(safe-area-inset-top), 16px) max(env(safe-area-inset-right), 16px)
+    max(env(safe-area-inset-bottom), 16px) max(env(safe-area-inset-left), 16px);
+}
+
+.share-modal.hidden {
+  display: none;
+}
+
+.share-modal-backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.75);
+  backdrop-filter: blur(4px);
+}
+
+.share-modal-content {
+  position: relative;
+  background: var(--bg-2);
+  border-radius: 20px;
+  padding: 20px;
+  width: 100%;
+  max-width: 360px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  box-shadow: 0 12px 40px var(--shadow);
+}
+
+.share-modal-title {
+  margin: 0;
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: var(--text);
+}
+
+#share-preview {
+  width: 100%;
+  border-radius: 12px;
+  box-shadow: 0 4px 16px var(--shadow);
+}
+
+.share-modal-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: 100%;
+}
+
+.share-modal-actions .cta {
+  max-width: none;
+}
+
 /* ============ Responsive ============ */
 @media (max-height: 600px) {
   .pokemon-image-wrap {

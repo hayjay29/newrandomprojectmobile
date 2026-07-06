@@ -116,12 +116,28 @@
           </div>
         </div>
         <div id="new-record" class="new-record hidden">🏆 신기록!</div>
+        <button id="share-btn" class="cta share">📸 결과 이미지 공유</button>
         <button id="retry-btn" class="cta">다시 하기</button>
         <button id="menu-btn" class="cta secondary">메인으로</button>
       </div>
     </section>
+
+    <!-- 공유 미리보기 -->
+    <div id="share-modal" class="share-modal hidden">
+      <div class="share-modal-backdrop"></div>
+      <div class="share-modal-content">
+        <h3 class="share-modal-title">결과 이미지</h3>
+        <img id="share-preview" alt="게임 결과" />
+        <div class="share-modal-actions">
+          <button id="share-confirm-btn" class="cta">공유하기</button>
+          <button id="share-download-btn" class="cta secondary">저장하기</button>
+          <button id="share-close-btn" class="cta secondary">닫기</button>
+        </div>
+      </div>
+    </div>
   </div>
 
+  <canvas id="share-canvas" hidden></canvas>
   <script src="game.js"></script>
   </body>
 </html>

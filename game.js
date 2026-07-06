@@ -14,6 +14,10 @@
     hard: "실루엣 · 번호 숨김",
   };
 
+  const DIFF_LABELS = { easy: "쉬움", normal: "보통", hard: "어려움" };
+  const GEN_LABELS = { 1: "1세대", 2: "2세대", 3: "3세대", all: "전체" };
+  const SHARE_URL = "https://hayjay29.github.io/newrandomprojectmobile/";
+
   const LIVES_MAX = 3;
   const BASE_SCORE = 10;
   const STREAK_BONUS = 5;
@@ -51,6 +55,13 @@
     newRecord: $("#new-record"),
     bestScore: $("#best-score"),
     diffHint: $("#diff-hint"),
+    shareBtn: $("#share-btn"),
+    shareModal: $("#share-modal"),
+    sharePreview: $("#share-preview"),
+    shareConfirmBtn: $("#share-confirm-btn"),
+    shareDownloadBtn: $("#share-download-btn"),
+    shareCloseBtn: $("#share-close-btn"),
+    shareCanvas: $("#share-canvas"),
   };
 
   let difficulty = "easy";
@@ -64,6 +75,8 @@
   let lives = LIVES_MAX;
   let currentPokemon = null;
   let answering = false;
+  let lastResult = null;
+  let shareBlob = null;
 
   function showScreen(name) {
     Object.values(screens).forEach((s) => s.classList.remove("active"));
@@ -272,12 +285,192 @@
       updateBestDisplay();
     }
 
+    lastResult = {
+      score,
+      correctCount,
+      maxStreak,
+      isNewRecord,
+      difficulty,
+      generation,
+    };
+
     els.finalScore.textContent = score;
     els.finalCorrect.textContent = correctCount;
     els.finalStreak.textContent = maxStreak;
     els.newRecord.classList.toggle("hidden", !isNewRecord);
 
     showScreen("gameover");
+  }
+
+  function drawPokeball(ctx, cx, cy, r) {
+    ctx.save();
+    ctx.beginPath();
+    ctx.arc(cx, cy, r, 0, Math.PI * 2);
+    const grad = ctx.createLinearGradient(cx, cy - r, cx, cy + r);
+    grad.addColorStop(0, "#e94560");
+    grad.addColorStop(0.46, "#e94560");
+    grad.addColorStop(0.46, "#333");
+    grad.addColorStop(0.54, "#333");
+    grad.addColorStop(0.54, "#fff");
+    grad.addColorStop(1, "#fff");
+    ctx.fillStyle = grad;
+    ctx.fill();
+    ctx.beginPath();
+    ctx.arc(cx, cy, r * 0.28, 0, Math.PI * 2);
+    ctx.fillStyle = "#fff";
+    ctx.fill();
+    ctx.lineWidth = r * 0.1;
+    ctx.strokeStyle = "#333";
+    ctx.stroke();
+    ctx.restore();
+  }
+
+  function roundRect(ctx, x, y, w, h, r) {
+    ctx.beginPath();
+    ctx.moveTo(x + r, y);
+    ctx.lineTo(x + w - r, y);
+    ctx.quadraticCurveTo(x + w, y, x + w, y + r);
+    ctx.lineTo(x + w, y + h - r);
+    ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
+    ctx.lineTo(x + r, y + h);
+    ctx.quadraticCurveTo(x, y + h, x, y + h - r);
+    ctx.lineTo(x, y + r);
+    ctx.quadraticCurveTo(x, y, x + r, y);
+    ctx.closePath();
+  }
+
+  function generateShareImage(result) {
+    const W = 600;
+    const H = 800;
+    const canvas = els.shareCanvas;
+    canvas.width = W;
+    canvas.height = H;
+    const ctx = canvas.getContext("2d");
+
+    const bg = ctx.createLinearGradient(0, 0, W, H);
+    bg.addColorStop(0, "#1a1a2e");
+    bg.addColorStop(0.5, "#16213e");
+    bg.addColorStop(1, "#0f3460");
+    ctx.fillStyle = bg;
+    ctx.fillRect(0, 0, W, H);
+
+    drawPokeball(ctx, W / 2, 100, 50);
+
+    ctx.textAlign = "center";
+    ctx.fillStyle = "#ffd93d";
+    ctx.font = "bold 36px 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif";
+    ctx.fillText("포켓몬 이름 맞히기", W / 2, 200);
+
+    ctx.fillStyle = "#e94560";
+    ctx.font = "bold 28px 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif";
+    ctx.fillText("게임 종료!", W / 2, 250);
+
+    if (result.isNewRecord) {
+      ctx.fillStyle = "#ffd93d";
+      ctx.font = "bold 22px 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif";
+      ctx.fillText("🏆 신기록 달성!", W / 2, 290);
+    }
+
+    const stats = [
+      { label: "최종 점수", value: String(result.score) },
+      { label: "맞힌 문제", value: String(result.correctCount) },
+      { label: "최대 연속", value: String(result.maxStreak) },
+    ];
+
+    const cardX = 60;
+    const cardW = W - 120;
+    let cardY = result.isNewRecord ? 320 : 300;
+
+    stats.forEach((stat) => {
+      roundRect(ctx, cardX, cardY, cardW, 70, 14);
+      ctx.fillStyle = "rgba(22, 33, 62, 0.9)";
+      ctx.fill();
+      ctx.strokeStyle = "rgba(76, 201, 240, 0.2)";
+      ctx.lineWidth = 2;
+      ctx.stroke();
+
+      ctx.textAlign = "left";
+      ctx.fillStyle = "#a0a0b8";
+      ctx.font = "20px 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif";
+      ctx.fillText(stat.label, cardX + 24, cardY + 44);
+
+      ctx.textAlign = "right";
+      ctx.fillStyle = "#ffd93d";
+      ctx.font = "bold 32px 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif";
+      ctx.fillText(stat.value, cardX + cardW - 24, cardY + 46);
+
+      cardY += 86;
+    });
+
+    ctx.textAlign = "center";
+    ctx.fillStyle = "#a0a0b8";
+    ctx.font = "18px 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif";
+    const diffLabel = DIFF_LABELS[result.difficulty] || result.difficulty;
+    const genLabel = GEN_LABELS[result.generation] || result.generation;
+    ctx.fillText(`${diffLabel} · ${genLabel}`, W / 2, cardY + 30);
+
+    ctx.fillStyle = "#4cc9f0";
+    ctx.font = "16px 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif";
+    ctx.fillText(SHARE_URL, W / 2, H - 40);
+
+    return canvas;
+  }
+
+  function canvasToBlob(canvas) {
+    return new Promise((resolve) => canvas.toBlob(resolve, "image/png"));
+  }
+
+  function openShareModal() {
+    if (!lastResult) return;
+
+    const canvas = generateShareImage(lastResult);
+    els.sharePreview.src = canvas.toDataURL("image/png");
+
+    canvasToBlob(canvas).then((blob) => {
+      shareBlob = blob;
+    });
+
+    els.shareModal.classList.remove("hidden");
+  }
+
+  function closeShareModal() {
+    els.shareModal.classList.add("hidden");
+    shareBlob = null;
+  }
+
+  async function shareImage() {
+    if (!shareBlob) return;
+
+    const file = new File([shareBlob], "pokemon-result.png", { type: "image/png" });
+    const shareData = {
+      title: "포켓몬 이름 맞히기",
+      text: `점수 ${lastResult.score}점! 나도 도전해보세요 👉 ${SHARE_URL}`,
+      files: [file],
+    };
+
+    if (navigator.share && navigator.canShare?.(shareData)) {
+      try {
+        await navigator.share(shareData);
+        closeShareModal();
+        return;
+      } catch (err) {
+        if (err.name === "AbortError") return;
+      }
+    }
+
+    downloadImage();
+  }
+
+  function downloadImage() {
+    if (!shareBlob) return;
+
+    const url = URL.createObjectURL(shareBlob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `pokemon-result-${lastResult.score}점.png`;
+    a.click();
+    URL.revokeObjectURL(url);
+    closeShareModal();
   }
 
   function resetGameState() {
@@ -328,6 +521,11 @@
   els.startBtn.addEventListener("click", startGame);
   els.retryBtn.addEventListener("click", startGame);
   els.menuBtn.addEventListener("click", () => showScreen("start"));
+  els.shareBtn.addEventListener("click", openShareModal);
+  els.shareConfirmBtn.addEventListener("click", shareImage);
+  els.shareDownloadBtn.addEventListener("click", downloadImage);
+  els.shareCloseBtn.addEventListener("click", closeShareModal);
+  els.shareModal.querySelector(".share-modal-backdrop").addEventListener("click", closeShareModal);
 
   updateBestDisplay();
 })();
