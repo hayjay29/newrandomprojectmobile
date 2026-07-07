@@ -415,9 +415,7 @@
     levelCorrect = 0;
     applyLevelConfig();
 
-    const cfg = getLevelConfig(level);
     els.levelupNum.textContent = `Level ${level}`;
-    els.levelupDesc.textContent = getLevelDescription(cfg);
     els.levelupOverlay.classList.remove("hidden");
 
     setTimeout(() => {
@@ -563,10 +561,6 @@
     ctx.fillStyle = "#a0a0b8";
     ctx.font = "18px 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif";
     ctx.fillText(`최고 레벨 ${result.maxLevel}`, W / 2, cardY + 30);
-
-    ctx.fillStyle = "#4cc9f0";
-    ctx.font = "16px 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif";
-    ctx.fillText(SHARE_URL, W / 2, H - 40);
 
     return canvas;
   }
