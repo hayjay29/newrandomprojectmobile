@@ -66,7 +66,6 @@
     bestLevel: $("#best-level"),
     levelupOverlay: $("#levelup-overlay"),
     levelupNum: $("#levelup-num"),
-    levelupDesc: $("#levelup-desc"),
     shareBtn: $("#share-btn"),
     shareModal: $("#share-modal"),
     sharePreview: $("#share-preview"),
