@@ -13,7 +13,7 @@
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
     <meta http-equiv="Pragma" content="no-cache" />
     <title>포켓몬 이름 맞히기</title>
-    <link rel="stylesheet" href="style.css?v=11" />
+    <link rel="stylesheet" href="style.css?v=12" />
   </head>
   <body>
   <div id="app">
@@ -24,44 +24,20 @@
           <div class="pokeball" aria-hidden="true"></div>
           <h1>포켓몬<br />이름 맞히기</h1>
         </div>
-        <p class="subtitle">이미지를 보고 포켓몬 이름을 맞혀보세요!</p>
-
-        <div class="difficulty-picker">
-          <p class="picker-label">난이도</p>
-          <div class="difficulty-btns">
-            <button class="diff-btn active" data-diff="easy">쉬움</button>
-            <button class="diff-btn" data-diff="normal">보통</button>
-            <button class="diff-btn" data-diff="hard">어려움</button>
-          </div>
-          <p class="diff-hint" id="diff-hint">컬러 이미지 · 번호 표시 · ×1</p>
-        </div>
-
-        <div class="difficulty-picker">
-          <p class="picker-label">세대</p>
-          <div class="difficulty-btns gen-btns">
-            <button class="gen-btn active" data-gen="1">1</button>
-            <button class="gen-btn" data-gen="2">2</button>
-            <button class="gen-btn" data-gen="3">3</button>
-            <button class="gen-btn" data-gen="all">전체</button>
-          </div>
-        </div>
+        <p class="subtitle">레벨이 올라갈수록 난이도가 높아집니다!</p>
 
         <button id="start-btn" class="cta">게임 시작</button>
 
         <div class="best-scores">
-          <p class="picker-label">최고 점수</p>
-          <div class="best-scores-grid">
-            <div class="best-score-item active" data-diff="easy">
-              <span class="best-diff-label">쉬움</span>
-              <span id="best-easy" class="best-diff-value">0</span>
+          <p class="picker-label">최고 기록</p>
+          <div class="best-scores-grid single">
+            <div class="best-score-item active">
+              <span class="best-diff-label">최고 점수</span>
+              <span id="best-score" class="best-diff-value">0</span>
             </div>
-            <div class="best-score-item" data-diff="normal">
-              <span class="best-diff-label">보통</span>
-              <span id="best-normal" class="best-diff-value">0</span>
-            </div>
-            <div class="best-score-item" data-diff="hard">
-              <span class="best-diff-label">어려움</span>
-              <span id="best-hard" class="best-diff-value">0</span>
+            <div class="best-score-item">
+              <span class="best-diff-label">최고 레벨</span>
+              <span id="best-level" class="best-diff-value">1</span>
             </div>
           </div>
         </div>
@@ -84,14 +60,29 @@
           <span id="score" class="stat-value">0</span>
         </div>
         <div class="stat center">
-          <span class="stat-label">연속</span>
-          <span id="streak" class="stat-value streak">0</span>
+          <span class="stat-label">레벨</span>
+          <span id="level" class="stat-value level">1</span>
         </div>
         <div class="stat right">
           <span class="stat-label">목숨</span>
           <div id="lives" class="lives"></div>
         </div>
       </header>
+
+      <div class="level-progress">
+        <span id="level-desc" class="level-desc">1세대 · 컬러 · 번호 표시</span>
+        <div class="level-bar-track">
+          <div id="level-fill" class="level-bar-fill"></div>
+        </div>
+        <span id="level-count" class="level-count">0 / 10</span>
+      </div>
+
+      <div class="stat-row">
+        <div class="mini-stat">
+          <span class="mini-label">연속</span>
+          <span id="streak" class="mini-value streak">0</span>
+        </div>
+      </div>
 
       <div class="question-area">
         <p class="question-label">이 포켓몬의 이름은?</p>
@@ -129,6 +120,10 @@
             <span id="final-score" class="result-value">0</span>
           </div>
           <div class="result-stat">
+            <span class="result-label">도달 레벨</span>
+            <span id="final-level" class="result-value">1</span>
+          </div>
+          <div class="result-stat">
             <span class="result-label">맞힌 문제</span>
             <span id="final-correct" class="result-value">0</span>
           </div>
@@ -143,6 +138,15 @@
         <button id="menu-btn" class="cta secondary">메인으로</button>
       </div>
     </section>
+
+    <!-- 레벨업 -->
+    <div id="levelup-overlay" class="levelup-overlay hidden">
+      <div class="levelup-content">
+        <p class="levelup-badge">LEVEL UP!</p>
+        <p id="levelup-num" class="levelup-num">Level 2</p>
+        <p id="levelup-desc" class="levelup-desc"></p>
+      </div>
+    </div>
 
     <!-- 공유 미리보기 -->
     <div id="share-modal" class="share-modal hidden">
@@ -166,6 +170,6 @@
     <p class="footer-note">Unofficial fan game</p>
   </footer>
 
-  <script src="game.js?v=10"></script>
+  <script src="game.js?v=12"></script>
   </body>
 </html>

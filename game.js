@@ -8,22 +8,22 @@
     all: [1, 1025],
   };
 
-  const DIFF_HINTS = {
-    easy: "컬러 이미지 · 번호 표시 · ×1",
-    normal: "컬러 이미지 · 번호 숨김 · ×1.5",
-    hard: "실루엣 · 번호 숨김 · ×2",
-  };
-
   const DIFF_LABELS = { easy: "쉬움", normal: "보통", hard: "어려움" };
   const DIFF_MULTIPLIERS = { easy: 1, normal: 1.5, hard: 2 };
   const GEN_LABELS = { 1: "1세대", 2: "2세대", 3: "3세대", all: "전체" };
+  const LEVEL_MODES = ["easy", "normal", "hard"];
+  const LEVEL_GENS = ["1", "2", "3", "all"];
+  const QUESTIONS_PER_LEVEL = 10;
   const SHARE_URL = "https://brr.kr/17lhxh";
 
   const LIVES_MAX = 3;
   const BASE_SCORE = 10;
   const STREAK_BONUS = 5;
+  const LEVEL_BONUS_RATE = 0.15;
   const ANSWER_DELAY = 1200;
-  const STORAGE_KEY_PREFIX = "pokemon-guess-best-";
+  const LEVELUP_DELAY = 2200;
+  const STORAGE_KEY_SCORE = "pokemon-guess-best";
+  const STORAGE_KEY_LEVEL = "pokemon-guess-best-level";
   const LEGACY_STORAGE_KEY = "pokemon-guess-best";
 
   const $ = (sel) => document.querySelector(sel);
@@ -42,8 +42,12 @@
     menuBtn: $("#menu-btn"),
     loadingText: $("#loading-text"),
     score: $("#score"),
+    level: $("#level"),
     streak: $("#streak"),
     lives: $("#lives"),
+    levelDesc: $("#level-desc"),
+    levelFill: $("#level-fill"),
+    levelCount: $("#level-count"),
     pokemonImage: $("#pokemon-image"),
     pokemonImageWrap: $("#pokemon-image-wrap"),
     pokemonNumber: $("#pokemon-number"),
@@ -54,13 +58,15 @@
     feedback: $("#feedback"),
     feedbackText: $("#feedback-text"),
     finalScore: $("#final-score"),
+    finalLevel: $("#final-level"),
     finalCorrect: $("#final-correct"),
     finalStreak: $("#final-streak"),
     newRecord: $("#new-record"),
-    bestEasy: $("#best-easy"),
-    bestNormal: $("#best-normal"),
-    bestHard: $("#best-hard"),
-    diffHint: $("#diff-hint"),
+    bestScore: $("#best-score"),
+    bestLevel: $("#best-level"),
+    levelupOverlay: $("#levelup-overlay"),
+    levelupNum: $("#levelup-num"),
+    levelupDesc: $("#levelup-desc"),
     shareBtn: $("#share-btn"),
     shareModal: $("#share-modal"),
     sharePreview: $("#share-preview"),
@@ -70,6 +76,9 @@
     shareCanvas: $("#share-canvas"),
   };
 
+  let level = 1;
+  let levelCorrect = 0;
+  let maxLevel = 1;
   let difficulty = "easy";
   let generation = "1";
   let pokemonPool = [];
@@ -93,34 +102,76 @@
     document.body.classList.toggle("in-game", name === "game");
   }
 
-  function getBestScore(diff) {
-    return parseInt(localStorage.getItem(STORAGE_KEY_PREFIX + diff) || "0", 10);
+  function getLevelConfig(lv) {
+    const idx = lv - 1;
+    const cycle = Math.floor(idx / 12);
+    return {
+      level: lv,
+      generation: LEVEL_GENS[Math.floor(idx / 3) % LEVEL_GENS.length],
+      difficulty: LEVEL_MODES[idx % LEVEL_MODES.length],
+      questionsRequired: QUESTIONS_PER_LEVEL + cycle * 5,
+      levelMultiplier: 1 + (lv - 1) * LEVEL_BONUS_RATE,
+    };
   }
 
-  function saveBestScore(diff, val) {
-    localStorage.setItem(STORAGE_KEY_PREFIX + diff, String(val));
+  function getLevelDescription(cfg) {
+    const parts = [GEN_LABELS[cfg.generation]];
+    if (cfg.difficulty === "easy") parts.push("컬러", "번호 표시");
+    else if (cfg.difficulty === "normal") parts.push("컬러", "번호 숨김");
+    else parts.push("실루엣", "번호 숨김");
+    return parts.join(" · ");
+  }
+
+  function applyLevelConfig() {
+    const cfg = getLevelConfig(level);
+    difficulty = cfg.difficulty;
+    generation = cfg.generation;
+    pokemonPool = buildPool(generation);
+    els.level.textContent = level;
+    els.levelDesc.textContent = getLevelDescription(cfg);
+    updateLevelProgress();
+    applyDifficultyVisuals();
+  }
+
+  function updateLevelProgress() {
+    const cfg = getLevelConfig(level);
+    const pct = Math.min(100, (levelCorrect / cfg.questionsRequired) * 100);
+    els.levelFill.style.width = `${pct}%`;
+    els.levelCount.textContent = `${levelCorrect} / ${cfg.questionsRequired}`;
+  }
+
+  function getBestScore() {
+    return parseInt(localStorage.getItem(STORAGE_KEY_SCORE) || "0", 10);
+  }
+
+  function getBestLevel() {
+    return parseInt(localStorage.getItem(STORAGE_KEY_LEVEL) || "1", 10);
+  }
+
+  function saveBestScore(val) {
+    localStorage.setItem(STORAGE_KEY_SCORE, String(val));
+  }
+
+  function saveBestLevel(val) {
+    localStorage.setItem(STORAGE_KEY_LEVEL, String(val));
   }
 
   function migrateLegacyBest() {
     const legacy = localStorage.getItem(LEGACY_STORAGE_KEY);
-    if (legacy && !localStorage.getItem(STORAGE_KEY_PREFIX + "easy")) {
-      localStorage.setItem(STORAGE_KEY_PREFIX + "easy", legacy);
+    if (legacy && !localStorage.getItem(STORAGE_KEY_SCORE)) {
+      localStorage.setItem(STORAGE_KEY_SCORE, legacy);
     }
   }
 
   function updateBestDisplay() {
-    els.bestEasy.textContent = getBestScore("easy");
-    els.bestNormal.textContent = getBestScore("normal");
-    els.bestHard.textContent = getBestScore("hard");
-
-    $$(".best-score-item").forEach((item) => {
-      item.classList.toggle("active", item.dataset.diff === difficulty);
-    });
+    els.bestScore.textContent = getBestScore();
+    els.bestLevel.textContent = getBestLevel();
   }
 
   function calcPoints(streakCount) {
+    const cfg = getLevelConfig(level);
     const base = BASE_SCORE + (streakCount - 1) * STREAK_BONUS;
-    return Math.round(base * DIFF_MULTIPLIERS[difficulty]);
+    return Math.round(base * DIFF_MULTIPLIERS[cfg.difficulty] * cfg.levelMultiplier);
   }
 
   function buildPool(gen) {
@@ -177,9 +228,11 @@
 
     const urls = getImageUrls(id);
     let index = 0;
+    let attemptTimer = null;
 
     const finish = (ok) => {
       if (token !== imageLoadToken) return;
+      clearTimeout(attemptTimer);
       hideImageLoader();
       if (ok) {
         showImageFallback(false);
@@ -191,28 +244,22 @@
       }
     };
 
-    const hardLimit = setTimeout(() => {
-      if (token !== imageLoadToken) return;
-      if (img.complete && img.naturalWidth > 0) {
-        finish(true);
-        return;
-      }
-      finish(false);
-    }, 8000);
-
     const tryNext = () => {
       if (token !== imageLoadToken) return;
       if (index >= urls.length) {
-        clearTimeout(hardLimit);
         finish(false);
         return;
       }
 
       const url = urls[index++];
-      img.onload = () => {
-        clearTimeout(hardLimit);
-        finish(true);
-      };
+      clearTimeout(attemptTimer);
+      attemptTimer = setTimeout(() => {
+        img.onload = null;
+        img.onerror = null;
+        tryNext();
+      }, IMAGE_ATTEMPT_MS);
+
+      img.onload = () => finish(true);
       img.onerror = () => tryNext();
       img.referrerPolicy = "no-referrer";
       img.src = url;
@@ -320,16 +367,24 @@
       const points = calcPoints(streak);
       score += points;
       correctCount++;
+      levelCorrect++;
 
       els.score.textContent = score;
       els.streak.textContent = streak;
+      updateLevelProgress();
 
-      showFeedback(
-        "correct-fb",
-        streak > 1 ? `정답! +${points}점 (${streak}연속!)` : `정답! +${points}점`
-      );
+      const cfg = getLevelConfig(level);
+      const bonus =
+        streak > 1
+          ? ` (${streak}연속 · Lv.${level} ×${cfg.levelMultiplier.toFixed(1)})`
+          : ` (Lv.${level})`;
+      showFeedback("correct-fb", `정답! +${points}점${bonus}`);
 
-      setTimeout(() => startRound(), ANSWER_DELAY);
+      const leveledUp = levelCorrect >= cfg.questionsRequired;
+      setTimeout(() => {
+        if (leveledUp) levelUp();
+        else startRound();
+      }, ANSWER_DELAY);
     } else {
       btn.classList.add("wrong");
       buttons.forEach((b) => {
@@ -354,29 +409,52 @@
     }
   }
 
-  function endGame() {
-    const best = getBestScore(difficulty);
-    const isNewRecord = score > best;
+  function levelUp() {
+    clearFeedback();
+    level++;
+    if (level > maxLevel) maxLevel = level;
+    levelCorrect = 0;
+    applyLevelConfig();
 
-    if (isNewRecord) {
-      saveBestScore(difficulty, score);
-      updateBestDisplay();
-    }
+    const cfg = getLevelConfig(level);
+    els.levelupNum.textContent = `Level ${level}`;
+    els.levelupDesc.textContent = getLevelDescription(cfg);
+    els.levelupOverlay.classList.remove("hidden");
+
+    setTimeout(() => {
+      els.levelupOverlay.classList.add("hidden");
+      startRound();
+    }, LEVELUP_DELAY);
+  }
+
+  function endGame() {
+    const best = getBestScore();
+    const bestLv = getBestLevel();
+    const isNewRecord = score > best;
+    const isNewLevel = maxLevel > bestLv;
+
+    if (isNewRecord) saveBestScore(score);
+    if (isNewLevel) saveBestLevel(maxLevel);
+    if (isNewRecord || isNewLevel) updateBestDisplay();
 
     lastResult = {
       score,
       correctCount,
       maxStreak,
-      isNewRecord,
-      difficulty,
-      generation,
+      maxLevel,
+      isNewRecord: isNewRecord || isNewLevel,
     };
 
     els.finalScore.textContent = score;
+    els.finalLevel.textContent = maxLevel;
     els.finalCorrect.textContent = correctCount;
     els.finalStreak.textContent = maxStreak;
-    els.newRecord.textContent = `🏆 ${DIFF_LABELS[difficulty]} 신기록!`;
-    els.newRecord.classList.toggle("hidden", !isNewRecord);
+    els.newRecord.textContent = isNewRecord
+      ? "🏆 최고 점수 갱신!"
+      : isNewLevel
+        ? "🏆 최고 레벨 갱신!"
+        : "";
+    els.newRecord.classList.toggle("hidden", !isNewRecord && !isNewLevel);
 
     showScreen("gameover");
   }
@@ -420,7 +498,7 @@
 
   function generateShareImage(result) {
     const W = 600;
-    const H = 800;
+    const H = 860;
     const canvas = els.shareCanvas;
     canvas.width = W;
     canvas.height = H;
@@ -452,13 +530,14 @@
 
     const stats = [
       { label: "최종 점수", value: String(result.score) },
+      { label: "도달 레벨", value: String(result.maxLevel) },
       { label: "맞힌 문제", value: String(result.correctCount) },
       { label: "최대 연속", value: String(result.maxStreak) },
     ];
 
     const cardX = 60;
     const cardW = W - 120;
-    let cardY = result.isNewRecord ? 320 : 300;
+    let cardY = result.isNewRecord ? 300 : 280;
 
     stats.forEach((stat) => {
       roundRect(ctx, cardX, cardY, cardW, 70, 14);
@@ -484,10 +563,7 @@
     ctx.textAlign = "center";
     ctx.fillStyle = "#a0a0b8";
     ctx.font = "18px 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif";
-    const diffLabel = DIFF_LABELS[result.difficulty] || result.difficulty;
-    const genLabel = GEN_LABELS[result.generation] || result.generation;
-    const mult = DIFF_MULTIPLIERS[result.difficulty] || 1;
-    ctx.fillText(`${diffLabel} ×${mult} · ${genLabel}`, W / 2, cardY + 30);
+    ctx.fillText(`최고 레벨 ${result.maxLevel}`, W / 2, cardY + 30);
 
     ctx.fillStyle = "#4cc9f0";
     ctx.font = "16px 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif";
@@ -559,37 +635,22 @@
     maxStreak = 0;
     correctCount = 0;
     lives = LIVES_MAX;
+    level = 1;
+    levelCorrect = 0;
+    maxLevel = 1;
     answering = false;
 
     els.score.textContent = "0";
     els.streak.textContent = "0";
     renderLives();
+    applyLevelConfig();
   }
 
   function startGame() {
     resetGameState();
-    pokemonPool = buildPool(generation);
     showScreen("game");
     startRound();
   }
-
-  $$(".diff-btn").forEach((btn) => {
-    btn.addEventListener("click", () => {
-      $$(".diff-btn").forEach((b) => b.classList.remove("active"));
-      btn.classList.add("active");
-      difficulty = btn.dataset.diff;
-      els.diffHint.textContent = DIFF_HINTS[difficulty];
-      updateBestDisplay();
-    });
-  });
-
-  $$(".gen-btn").forEach((btn) => {
-    btn.addEventListener("click", () => {
-      $$(".gen-btn").forEach((b) => b.classList.remove("active"));
-      btn.classList.add("active");
-      generation = btn.dataset.gen;
-    });
-  });
 
   els.startBtn.addEventListener("click", startGame);
   els.retryBtn.addEventListener("click", startGame);

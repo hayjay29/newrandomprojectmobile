@@ -306,6 +306,148 @@ body {
   margin-top: 16px;
 }
 
+.best-scores-grid.single {
+  max-width: 320px;
+  margin: 0 auto;
+}
+
+.best-scores-grid.single .best-score-item {
+  max-width: none;
+}
+
+.stat-value.level {
+  color: var(--blue);
+}
+
+.stat-row {
+  display: flex;
+  justify-content: center;
+  width: min(100%, 480px);
+}
+
+.mini-stat {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 12px;
+  background: var(--bg-2);
+  border-radius: 20px;
+}
+
+.mini-label {
+  font-size: 0.7rem;
+  color: var(--text-dim);
+  font-weight: 600;
+}
+
+.mini-value {
+  font-size: 1rem;
+  font-weight: 800;
+  color: var(--white);
+}
+
+.mini-value.streak {
+  color: var(--yellow);
+}
+
+.level-progress {
+  width: min(100%, 480px);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 0 2px 4px;
+}
+
+.level-desc {
+  font-size: 0.75rem;
+  color: var(--text-dim);
+  text-align: center;
+  font-weight: 600;
+}
+
+.level-bar-track {
+  height: 6px;
+  background: var(--bg-card);
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.level-bar-fill {
+  height: 100%;
+  width: 0%;
+  background: linear-gradient(90deg, var(--blue), var(--yellow));
+  border-radius: 3px;
+  transition: width 0.35s ease;
+}
+
+.level-count {
+  font-size: 0.72rem;
+  color: var(--text-dim);
+  text-align: right;
+  font-weight: 600;
+}
+
+/* ============ Level Up Overlay ============ */
+.levelup-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.75);
+  backdrop-filter: blur(6px);
+  padding: 24px;
+}
+
+.levelup-overlay.hidden {
+  display: none;
+}
+
+.levelup-content {
+  text-align: center;
+  animation: levelup-pop 0.5s ease;
+}
+
+.levelup-badge {
+  margin: 0 0 8px;
+  font-size: 1rem;
+  font-weight: 800;
+  letter-spacing: 0.15em;
+  color: var(--yellow);
+}
+
+.levelup-num {
+  margin: 0 0 12px;
+  font-size: 3rem;
+  font-weight: 800;
+  background: linear-gradient(135deg, var(--yellow), var(--red));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.levelup-desc {
+  margin: 0;
+  font-size: 1rem;
+  color: var(--text-dim);
+  font-weight: 600;
+}
+
+@keyframes levelup-pop {
+  0% {
+    transform: scale(0.6);
+    opacity: 0;
+  }
+  60% {
+    transform: scale(1.08);
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
 /* ============ Game Header ============ */
 .game-header {
   display: flex;
