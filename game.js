@@ -112,21 +112,12 @@
     };
   }
 
-  function getLevelDescription(cfg) {
-    const parts = [GEN_LABELS[cfg.generation]];
-    if (cfg.difficulty === "easy") parts.push("컬러", "번호 표시");
-    else if (cfg.difficulty === "normal") parts.push("컬러", "번호 숨김");
-    else parts.push("실루엣", "번호 숨김");
-    return parts.join(" · ");
-  }
-
   function applyLevelConfig() {
     const cfg = getLevelConfig(level);
     difficulty = cfg.difficulty;
     generation = cfg.generation;
     pokemonPool = buildPool(generation);
     els.level.textContent = level;
-    els.levelDesc.textContent = getLevelDescription(cfg);
     updateLevelProgress();
     applyDifficultyVisuals();
   }
