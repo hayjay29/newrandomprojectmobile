@@ -319,22 +319,6 @@ body {
   color: var(--blue);
 }
 
-.stat-row {
-  display: flex;
-  justify-content: center;
-  width: min(100%, 480px);
-}
-
-.streak-zone {
-  flex: 1;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: min(100%, 480px);
-  min-height: 40px;
-  max-height: 80px;
-}
-
 .mini-stat {
   display: flex;
   align-items: center;
@@ -368,6 +352,12 @@ body {
   padding: 0 2px 4px;
 }
 
+.level-progress-meta {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
 .level-desc {
   font-size: 0.75rem;
   color: var(--text-dim);
@@ -393,7 +383,6 @@ body {
 .level-count {
   font-size: 0.72rem;
   color: var(--text-dim);
-  text-align: right;
   font-weight: 600;
 }
 
@@ -552,6 +541,7 @@ body.in-game .screen {
   font-size: 1rem;
   color: var(--text-dim);
   font-weight: 600;
+  text-align: center;
 }
 
 .pokemon-card {
