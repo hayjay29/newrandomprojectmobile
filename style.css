@@ -325,6 +325,16 @@ body {
   width: min(100%, 480px);
 }
 
+.streak-zone {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: min(100%, 480px);
+  min-height: 40px;
+  max-height: 80px;
+}
+
 .mini-stat {
   display: flex;
   align-items: center;
