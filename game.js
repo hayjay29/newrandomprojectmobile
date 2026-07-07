@@ -45,7 +45,6 @@
     level: $("#level"),
     streak: $("#streak"),
     lives: $("#lives"),
-    levelDesc: $("#level-desc"),
     levelFill: $("#level-fill"),
     levelCount: $("#level-count"),
     pokemonImage: $("#pokemon-image"),
