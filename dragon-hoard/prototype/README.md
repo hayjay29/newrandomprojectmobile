@@ -48,8 +48,8 @@ Walk back into the lit tunnel behind the start point to return to camp.
 | 23 Return to camp | Everything auto-sells with a summary by category. |
 | 33, 41–43 Merchant | Bags (Explorer → Reinforced → Hauler), Nimble Gloves (faster tossing), Shovel (toss 1 → 2 → 3 → 5 → 8 items at once), Strength, Boots, Appraisal Glasses. The Bag of Holding (1,000,000g) is shown as an aspiration. |
 | 42 Appraisal | Without the glasses you only see rough guesses, and gems might be worthless glass. |
-| 6 Buried specials | **Tome of the Reaching Hand**: a blue corner pokes out of a slope near the entrance. Aim at it and toss aside the treasure around it to free it. Taking it teaches Telekinesis at once (design doc 47). |
-| 39 Giant objects | The Golden Colossus: its hand and crown poke out of the great mound. Too big to take, but it gets uncovered as you clear the pile. |
+| 6 Buried specials | **Tome of the Reaching Hand**: a blue corner pokes out of a slope near the entrance. Take it as soon as you spot it. Taking it teaches Telekinesis at once (design doc 47). |
+| 39 Giant objects | **Everything can be picked up.** The Golden Colossus (its hand and crown poke out of the great mound) is too big for a bag, so you heave it into your arms: 900 kg, so you crawl and every step is loud. Get it to camp for 250,000g. Die and it lies where you fell. |
 | 77–79 Disturbance | Actions make noise. At 40% you hear breathing, and at 70% the hoard trembles. At 100% the dragon wakes and you have 28 seconds to reach camp. |
 | 88–91 Death | Fire, then "a new relic hunter arrives". Your pack stays where you fell and can be recovered. Gold, gear and dig progress are kept. |
 | 110 Saving | Saves continuously while you play, and when the page is closed: gold, upgrades, which items are gone, tossed items, and mid-expedition your bag and position. **Continue** puts you back exactly where you were. |

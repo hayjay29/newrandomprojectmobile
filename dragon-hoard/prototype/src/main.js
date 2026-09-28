@@ -32,6 +32,8 @@ function freshState() {
     deaths: 0,
     itemsMoved: 0,
     pendingSpecials: [],
+    // the Golden Colossus: in the pile, carried, dropped where you died, or sold
+    colossus: { where: "pile", x: 0, z: -4 },
   };
 }
 
@@ -121,6 +123,48 @@ if (savedRun) {
   inv.coins = savedRun.coins || 0;
   inv.items = savedRun.items || [];
 }
+if (!restored) state.colossus = freshState().colossus;
+// a colossus being carried when the game closed without a saved run goes back
+if (state.colossus.where === "carried" && !inv.items.some((e) => e.giant)) state.colossus.where = "pile";
+placeColossus();
+
+// ---------- the Golden Colossus ----------
+const COLOSSUS = { name: "Golden Colossus", value: 250000, weight: 900 };
+
+function placeColossus() {
+  const c = state.colossus;
+  const col = cave.colossus;
+  const collider = cave.colliders.find((k) => k.colossus);
+  col.mesh.visible = c.where === "pile" || c.where === "dropped";
+  col.spots.length = 0;
+  collider.r = 0;
+  if (c.where === "pile") {
+    col.mesh.position.set(0, 0, -4);
+    col.mesh.rotation.set(0, 0, 0);
+    col.spots.push({ x: 3.4, y: 10.7, z: -4, r: 1.1 }, { x: 0, y: 9.3, z: -4, r: 1.6 }, { x: 0, y: 6.5, z: -4, r: 2.2 });
+    Object.assign(collider, { x: 0, z: -4, r: 2.5 });
+  } else if (c.where === "dropped") {
+    // lying on its side where the hunter fell
+    const y = Math.max(0, hoard.heightAt(c.x, c.z)) + 1.6;
+    col.mesh.position.set(c.x - 4, y, c.z);
+    col.mesh.rotation.set(0, 0, -Math.PI / 2);
+    col.spots.push({ x: c.x, y, z: c.z, r: 2.4, lying: true });
+    Object.assign(collider, { x: c.x, z: c.z, r: 1.8 });
+  }
+}
+
+// Too big for any bag: carried in your arms, crushingly heavy and loud.
+function heaveColossus() {
+  state.colossus.where = "carried";
+  inv.addItem({ name: COLOSSUS.name, cat: "Art & Relics", value: COLOSSUS.value, space: 0, weight: COLOSSUS.weight, giant: true });
+  placeColossus();
+  sfx.heavy();
+  sfx.rumble(0.6);
+  shake = 0.08;
+  addDisturbance(25);
+  ui.toast("You heave the Golden Colossus onto your back. Every step is thunder.", "special");
+  changed();
+}
 
 const player = { x: WORLD.start.x, z: WORLD.start.z, y: 2, yaw: 0, pitch: -0.12, vx: 0, vz: 0, bob: 0, stepT: 0 };
 const dist = { value: 0, quiet: 0, stage: 0, awake: false, timer: 0, nextBreath: 0, nextRumble: 0 };
@@ -173,6 +217,7 @@ const _pos = new THREE.Vector3();
 
 function raySphere(o, d, cx, cy, cz, r) {
   const lx = cx - o.x, ly = cy - o.y, lz = cz - o.z;
+  if (lx * lx + ly * ly + lz * lz < r * r) return 0.01; // standing inside it
   const tca = lx * d.x + ly * d.y + lz * d.z;
   if (tca < 0) return -1;
   const d2 = lx * lx + ly * ly + lz * lz - tca * tca;
@@ -201,13 +246,17 @@ function findTarget() {
     if (t > 0 && t <= PLAYER.reach + 0.3 && (t < bestT || (hit && !hit.exact))) { best = it; bestT = t; }
   }
 
+  // The colossus is huge: when the crosshair is on it, it wins over the
+  // small treasure heaped around it.
+  for (const s of cave.colossus.spots) {
+    const t = raySphere(_pos, _dir, s.x, s.y, s.z, s.r);
+    if (t > 0 && t < 7 && (s.lying || hoard.heightAt(s.x, s.z) < s.y + s.r) && (!hit || !hit.exact || t < bestT + 0.6)) {
+      return { kind: "colossus", t };
+    }
+  }
   if (best) {
     const far = bestT > PLAYER.reach;
     if (!far || tkAllowed(best)) return { kind: "item", it: best, t: bestT, tk: far };
-  }
-  for (const s of cave.colossus.spots) {
-    const t = raySphere(_pos, _dir, s.x, s.y, s.z, s.r);
-    if (t > 0 && t < 7 && hoard.heightAt(s.x, s.z) < s.y + s.r && t < bestT) return { kind: "colossus", t };
   }
   return null;
 }
@@ -223,7 +272,7 @@ function roomFor(it) {
   if (it.type === "tome") return true;
   const why = inv.canTake(itemSpace(it), itemWeight(it));
   if (why === "space") deny(`No space left in your ${inv.bag.name}.`);
-  else if (why === "weight") deny("Too heavy to lift with everything you're carrying.");
+  else if (why === "weight") deny(inv.items.some((e) => e.giant) ? "Your arms are full with the Colossus." : "Too heavy to lift with everything you're carrying.");
   return !why;
 }
 
@@ -471,35 +520,22 @@ function updateInteraction(dt) {
     return;
   }
 
+  const takeKey = input.isTouch ? "Take" : "E";
+  const tossKey = input.isTouch ? "Toss" : "F";
+
   if (target.kind === "colossus") {
+    const worth = hasAppraisal() ? `<span class="v">${fmt(COLOSSUS.value)}g</span>` : `<span class="v">looks priceless</span>`;
     ui.prompt(
-      "<b>Golden Colossus</b>",
-      hasAppraisal()
-        ? `<span class="v">About 250,000g.</span> Far too large for any bag. It needs straps, a wagon or Featherweight.`
-        : "Enormous. Far too large for any bag. It needs straps, a wagon or Featherweight."
+      `<b>[${takeKey}]</b> Heave up <b>Golden Colossus</b>`,
+      `${worth} · too big for any bag, you carry it in your arms · ${COLOSSUS.weight} kg`
     );
     resetHold();
+    if (grabPressed) heaveColossus();
     return;
   }
 
   const it = target.it;
   const name = nameOf(it);
-  const takeKey = input.isTouch ? "Take" : "E";
-  const tossKey = input.isTouch ? "Toss" : "F";
-
-  if (it.special && it.buried > 0.4) {
-    ui.prompt(`<b>${name}</b>`, `<span class="warn">Stuck under treasure.</span> <b>[${tossKey}]</b> Toss aside what's around it`);
-    if (!input.dig) return resetHold();
-    if (hold.target !== it || hold.verb !== "around") hold = { target: it, t: 0, verb: "around" };
-    hold.t += dt / (TOSS.time * up("handling"));
-    ui.hold(hold.t);
-    if (hold.t >= 1) {
-      resetHold();
-      const around = treasure.near(it.x, it.z, 0.9, up("shovel"));
-      if (around.length) toss(it, around);
-    }
-    return;
-  }
 
   const bits = [valueText(it)];
   if (it.type !== "tome") bits.push(spaceText(it), `${+itemWeight(it).toFixed(2)} kg`);
@@ -639,6 +675,7 @@ function returnToCamp() {
   state.expeditions += 1;
   state.bestHaul = Math.max(state.bestHaul, total);
   const pending = state.pendingSpecials.splice(0);
+  if (state.colossus.where === "carried") state.colossus.where = "sold";
   inv.clear();
   resetDisturbance();
   runActive = false;
@@ -697,6 +734,11 @@ function die() {
   input.releaseLock();
   ui.flash("#ff9a40", 1400);
   sfx.rumble(1.4);
+  if (state.colossus.where === "carried") {
+    inv.items = inv.items.filter((e) => !e.giant);
+    state.colossus = { where: "dropped", x: player.x, z: player.z };
+    placeColossus();
+  }
   const value = inv.totalValue();
   let text = "You carried nothing, so nothing was lost.";
   if (value > 0) {

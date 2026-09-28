@@ -16,7 +16,7 @@ export function buildCave(scene, renderer, camera) {
   buildFloor(scene);
   buildWalls(scene);
   const colliders = buildRuins(scene);
-  colliders.push({ x: 0, z: -4, r: 2.5 }); // the colossus
+  colliders.push({ x: 0, z: -4, r: 2.5, colossus: true }); // the colossus
   const entrance = buildEntrance(scene);
   const colossus = buildColossus(scene);
 

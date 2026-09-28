@@ -1125,6 +1125,14 @@ A "treasure highway" can become a long-term infrastructure goal.
 
 ## 39. Giant Extraction Projects
 
+**DECIDED (developer decision): everything in the den can be picked up**,
+giant objects included. A giant object never fits in a bag; the player carries
+it in their arms. It weighs so much that they crawl and every step is loud, so
+hauling it out is a greed gamble against the dragon (prototype: the Golden
+Colossus, 900 kg, 250,000g). If the player dies, it stays where they fell.
+Straps, carts, wagons, Featherweight and Telekinesis (below) are what later
+make these hauls practical rather than what make them possible.
+
 Some objects can be too large even for normal wagons.
 
 Examples:
