@@ -21,7 +21,6 @@
         <div class="meter"><span class="lbl">Space</span><div class="bar"><div id="bar-space"></div></div><span id="txt-space" class="num">0 / 6</span></div>
         <div class="meter"><span class="lbl">Weight</span><div class="bar"><div id="bar-weight"></div></div><span id="txt-weight" class="num">0 / 10 kg</span></div>
         <div id="hud-over" class="over" hidden>Overloaded</div>
-        <div id="hud-coins" class="coins-mode">Pocketing coins while digging <kbd>C</kbd></div>
       </div>
 
       <div class="hud-dist">
@@ -41,8 +40,7 @@
     <div id="touch-layer" hidden>
       <div id="stick-base"><div id="stick-knob"></div></div>
       <div class="tbtns">
-        <button id="btn-coins" class="tbtn small" type="button">Coins</button>
-        <button id="btn-dig" class="tbtn" type="button">Dig</button>
+        <button id="btn-dig" class="tbtn" type="button">Toss</button>
         <button id="btn-grab" class="tbtn" type="button">Take</button>
       </div>
     </div>
@@ -52,22 +50,21 @@
       <div class="panel intro-panel">
         <p class="eyebrow">Prototype 0.1 · one chamber</p>
         <h1>Dragon Hoard</h1>
-        <p class="lede">For three hundred years the dragon has dragged treasure into this cave. Somewhere under it is the relic you were hired to find. Today you have a tiny pouch and your bare hands.</p>
+        <p class="lede">For three hundred years the dragon has dragged treasure into this cave. Every coin, cup and crown in it can be carried off. Somewhere underneath is the relic you were hired to find. Today you have a tiny pouch and your bare hands.</p>
         <div class="controls">
           <div class="ctl-col desk">
             <h3>Mouse &amp; keyboard</h3>
             <p><kbd>W A S D</kbd> move · <kbd>Shift</kbd> sprint</p>
-            <p><kbd>E</kbd> or <kbd>Left click</kbd> take (hold to pull)</p>
-            <p><kbd>F</kbd>, <kbd>Space</kbd> or <kbd>Right click</kbd> dig (hold)</p>
-            <p><kbd>C</kbd> keep or drop coins while digging</p>
+            <p><kbd>E</kbd> or <kbd>Left click</kbd> take into your bag</p>
+            <p><kbd>F</kbd>, <kbd>Space</kbd> or <kbd>Right click</kbd> toss aside</p>
           </div>
           <div class="ctl-col touch">
             <h3>Touch</h3>
             <p>Left thumb moves, right thumb looks</p>
-            <p>Hold <b>Take</b> or <b>Dig</b></p>
+            <p>Hold <b>Take</b> to bag an item, <b>Toss</b> to throw it aside</p>
           </div>
         </div>
-        <p class="note">Walk back through the lit tunnel behind you to reach camp. Everything you carry sells there. Digging is loud.</p>
+        <p class="note">Toss things aside to reach what's underneath. Walk back through the lit tunnel behind you to reach camp, where everything you carry sells. Throwing treasure around is loud.</p>
         <button id="btn-start" class="cta" type="button">Enter the den</button>
       </div>
     </section>

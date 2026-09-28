@@ -13,9 +13,15 @@ export const WORLD = {
   entrance: { x: 0, z: 29.2 }, // the tunnel back to camp
   exitRadius: 2.4,
   start: { x: 0, z: 26.5 },
-  itemCount: 700, // hidden + visible interactive items inside the mound
-  surfaceCoins: 5200, // purely visual instanced coins
-  reposeSlope: 0.9, // max height difference per metre before treasure slides
+};
+
+// The hoard is made only of items. Each 0.5 m column of the grid is a
+// stack of layers; each layer holds a few real items. Only the top layer
+// of each column exists as objects.
+export const TREASURE = {
+  layer: 0.15, // metres of pile per layer
+  itemsPerLayer: [2, 3], // min / max items in one layer of one column
+  maxStep: 3, // layers a column may stand above a neighbour before it slides
 };
 
 export const PLAYER = {
@@ -51,13 +57,13 @@ export const UPGRADES = {
     values: [1, 0.7, 0.5, 0.36, 0.25], // pickup-time multiplier
     fmt: (v) => `${Math.round((1 / v) * 100)}% grab speed`,
   },
-  dig: {
-    name: "Digging Tool",
+  shovel: {
+    name: "Shovel",
     tiers: ["Bare Hands", "Coin Scoop", "Hoard Shovel", "Excavator's Rake", "Delver's Spade"],
-    desc: "Excavate treasure faster. Louder tools disturb more.",
+    desc: "Toss more treasure aside in one go. Bigger scoops are louder.",
     costs: [200, 1200, 7000, 35000],
-    values: [1, 1.7, 2.7, 4.2, 6.5], // dig-rate multiplier
-    fmt: (v) => `${v}x dig rate`,
+    values: [1, 2, 3, 5, 8], // items moved per toss
+    fmt: (v) => (v === 1 ? "1 item per toss" : `${v} items per toss`),
   },
   strength: {
     name: "Strength Training",
@@ -82,12 +88,16 @@ export const UPGRADES = {
   },
 };
 
-export const DIG = {
-  baseRate: 0.55, // metres/second of lowering at brush centre
-  radius: 1.25,
-  coinsPerCubicMetre: 110,
-  coinSpacePer: 1 / 25, // 25 coins per 1 space: bulky for their value
-  coinWeight: 0.02, // kg per coin
+export const COINS = {
+  spacePer: 1 / 25, // 25 coins per 1 space: bulky for their value
+  weightPer: 0.02, // kg per coin
+};
+
+export const TOSS = {
+  time: 0.4, // seconds of hold per toss (scaled by Nimble Gloves)
+  reach: 0.8, // extra items for a bigger shovel come from this radius
+  distance: 2.3, // how far to the side items land
+  flight: 0.45,
 };
 
 export const TELEKINESIS = {
@@ -101,10 +111,9 @@ export const DISTURBANCE = {
   max: 100,
   decayPerSec: 2.6,
   decayDelay: 1.8, // seconds of quiet before it starts to fall
-  digPerSec: 5.5, // scaled by sqrt(dig tool multiplier)
+  tossBase: 0.6, // per tossed item, plus 60% of the item's own noise
   overloadMovePerSec: 3.5,
   sprintPerSec: 0.8,
-  pullBonus: 2.5,
   warn: 40,
   danger: 70,
   escapeTime: 28, // seconds to get out once the dragon wakes

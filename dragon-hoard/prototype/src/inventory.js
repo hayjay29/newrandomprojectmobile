@@ -2,7 +2,7 @@
 //  Bag: SPACE is the firm limit, WEIGHT can be exceeded
 //  (overload slows you and makes noise). Coins stack in a purse.
 // =============================================================
-import { BAGS, DIG, UPGRADES } from "./config.js";
+import { BAGS, COINS, UPGRADES } from "./config.js";
 
 export class Inventory {
   constructor(state) {
@@ -24,13 +24,13 @@ export class Inventory {
   }
 
   get spaceUsed() {
-    let s = this.coins * DIG.coinSpacePer;
+    let s = this.coins * COINS.spacePer;
     for (const it of this.items) s += it.space;
     return s;
   }
 
   get weightUsed() {
-    let w = this.coins * DIG.coinWeight;
+    let w = this.coins * COINS.weightPer;
     for (const it of this.items) w += it.weight;
     return w;
   }
@@ -54,13 +54,8 @@ export class Inventory {
     this.items.push(entry);
   }
 
-  // Returns how many coins actually fit.
   addCoins(n) {
-    const fit = Math.floor(this.freeSpace / DIG.coinSpacePer + 1e-6);
-    const w = Math.max(0, Math.floor((this.weightCap * 2 - this.weightUsed) / DIG.coinWeight));
-    const take = Math.max(0, Math.min(n, fit, w));
-    this.coins += take;
-    return take;
+    this.coins += n;
   }
 
   totalValue() {

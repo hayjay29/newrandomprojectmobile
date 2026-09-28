@@ -101,8 +101,6 @@ kbd {
   text-transform: uppercase;
   color: var(--ember);
 }
-.coins-mode { font-size: 12px; color: var(--muted); }
-.coins-mode.off { color: var(--ember); }
 
 .hud-dist {
   position: absolute;
@@ -273,13 +271,10 @@ kbd {
   text-transform: uppercase;
 }
 .tbtn.on { background: rgba(242, 181, 58, 0.45); }
-.tbtn.small { width: 58px; height: 34px; border-radius: 17px; font-size: 11px; grid-column: 1 / -1; justify-self: end; }
-#btn-grab { grid-row: 2; grid-column: 2; }
-#btn-dig { grid-row: 2; grid-column: 1; }
 
 body.touch .hud-bag { bottom: auto; top: calc(58px + var(--safe-t)); width: min(250px, 56vw); padding: 8px 10px; }
 body.touch .hud-dist { bottom: auto; top: calc(16px + var(--safe-t)); width: min(170px, 36vw); padding: 8px 10px; }
-body.touch .coins-mode kbd, body.touch .ctl-col.desk { display: none; }
+body.touch .ctl-col.desk { display: none; }
 body:not(.touch) .ctl-col.touch { display: none; }
 body.touch #toasts { top: calc(172px + var(--safe-t)); }
 

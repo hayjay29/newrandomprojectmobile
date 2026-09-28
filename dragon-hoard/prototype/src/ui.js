@@ -12,7 +12,7 @@ export class UI {
       hud: $("hud"), gold: $("hud-gold"), bagName: $("hud-bagname"), haul: $("hud-haul"),
       barSpace: $("bar-space"), txtSpace: $("txt-space"),
       barWeight: $("bar-weight"), txtWeight: $("txt-weight"),
-      over: $("hud-over"), coins: $("hud-coins"), barDist: $("bar-dist"),
+      over: $("hud-over"), barDist: $("bar-dist"),
       cross: $("crosshair"), ring: $("hold-ring"),
       prompt: $("prompt"), promptMain: $("prompt-main"), promptSub: $("prompt-sub"),
       toasts: $("toasts"), danger: $("danger-banner"), dangerTime: $("danger-time"),
@@ -40,8 +40,6 @@ export class UI {
     e.barWeight.classList.toggle("full", wt > 1);
     e.txtWeight.textContent = `${d.weightUsed.toFixed(1)} / ${Math.round(d.weightCap)} kg`;
     e.over.hidden = !(wt > 1);
-    e.coins.firstChild.textContent = d.coinsOn ? "Pocketing coins while digging " : "Dropping coins while digging ";
-    e.coins.classList.toggle("off", !d.coinsOn);
     e.barDist.style.width = `${Math.min(100, d.disturbance)}%`;
   }
 

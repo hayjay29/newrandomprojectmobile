@@ -2496,49 +2496,60 @@ Use clean readable game UI.
 
 ## 103. Technical Hoard Implementation
 
-CRITICAL:
+**DECIDED (developer decision, after playing Prototype 0.1):** the hoard is made
+**entirely of pickable items**. There is no visible non-interactive "hill" of
+fake treasure. Everything the player can see in the pile can be taken or moved.
+
+CRITICAL (still true):
 
 Do NOT create 100,000 or 1,000,000 individual rigidbody GameObjects.
 
-Use a hybrid illusion.
+The trick that makes an all-items hoard affordable: only the **top layer**
+of the pile exists as objects. Everything underneath exists only as data
+until it is uncovered.
 
 ---
 
-## 104. Hoard Layer 1 — Bulk
+## 104. Hoard Layer 1 — Columns of Item Layers
 
-Far/bulk treasure mound:
+The pile is a grid of small columns (0.5 m in the prototype). Each column is
+a stack of thin layers (0.15 m), and each layer holds a few real items.
 
-- chunked mound mesh
-- terrain-like mesh
-- simplified treasure surface
-- cheap geometry
+- The grid only stores how many layers each column has left.
+- The items in a layer are rolled from a seed for that column, so they are
+  the same every time the game loads.
+- A dark surface just under the item tops shows only as shadow in the gaps.
+  It is never seen as a hill of its own.
 
-This represents most of the hoard mass.
+This represents most of the hoard mass without storing it.
 
 ---
 
-## 105. Hoard Layer 2 — Surface Instances
+## 105. Hoard Layer 2 — The Visible Top Layer (instanced, all pickable)
 
-Use GPU instancing for repeated visible objects:
+Every column's top layer is drawn with GPU instancing, one batch per item
+type and material:
 
-- coins
+- coin heaps
 - swords
 - gems
 - cups
 - shields
 - etc.
 
-These create visual richness.
+Every one of them is pickable. They do NOT need full physics.
 
-They do NOT all need full physics.
+When all items of a column's top layer are taken or tossed, the column drops
+one layer and the next layer appears. Pulling an item out from underneath
+makes whatever was above it settle down as loose items.
 
 ---
 
-## 106. Hoard Layer 3 — Interactive Objects
+## 106. Hoard Layer 3 — Loose Items
 
-Only nearby objects become real interactive objects.
-
-Possible count: hundreds, not tens of thousands.
+Items the player has tossed aside, or that settled when treasure below them
+was removed, are stored individually as "loose" items and saved with their
+positions. They are still drawn through the same instanced batches.
 
 Use:
 
@@ -2563,17 +2574,22 @@ Always real authored objects:
 
 ## 108. Hoard Depletion
 
-Each treasure chunk can track a value like:
+Each column tracks:
 
-**Treasure Units Remaining**
+**Layers Remaining** (plus which items of its top layer are already gone)
 
-As the player excavates:
+As the player takes and tosses items:
 
-- mound lowers
-- surface changes
+- the pile lowers
+- new layers of items are uncovered
+- treasure slides into holes that get too steep
 - architecture becomes exposed
 
-Save chunk progress rather than every individual coin transform.
+Save the layer counts and the loose items, never every individual item.
+
+**Excavation verb:** "Toss aside" replaces digging. The player throws an item
+out of the way without bagging it. Shovel upgrades toss several items at once
+(1 → 2 → 3 → 5 → 8), which follows the power curve in section 55.
 
 ---
 

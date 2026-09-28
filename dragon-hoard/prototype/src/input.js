@@ -17,8 +17,8 @@ export class Input {
     this.stick = { x: 0, y: 0, id: null, ox: 0, oy: 0 };
     this.lookTouch = null;
     this.locked = false;
+    this.ignoreMouseUntil = 0;
     this.enabled = false;
-    this.onToggleCoins = null;
     this.onUnlock = null;
     this.isTouch = matchMedia("(pointer: coarse)").matches || "ontouchstart" in window;
     this.bindDesktop();
@@ -29,7 +29,6 @@ export class Input {
     addEventListener("keydown", (e) => {
       if (!this.enabled) return;
       this.keys.add(e.code);
-      if (e.code === "KeyC" && this.onToggleCoins) this.onToggleCoins();
       if (["Space", "ArrowUp", "ArrowDown", "Tab"].includes(e.code)) e.preventDefault();
     });
     addEventListener("keyup", (e) => this.keys.delete(e.code));
@@ -53,12 +52,17 @@ export class Input {
     this.canvas.addEventListener("contextmenu", (e) => e.preventDefault());
     addEventListener("mousemove", (e) => {
       if (!this.locked) return;
+      // Chrome can report one huge bogus movement right after the pointer
+      // is captured; skip the first moments and any impossible jumps.
+      if (performance.now() < this.ignoreMouseUntil) return;
+      if (Math.abs(e.movementX) > 350 || Math.abs(e.movementY) > 350) return;
       this.lookDX += e.movementX * PLAYER.lookSensitivity;
       this.lookDY += e.movementY * PLAYER.lookSensitivity;
     });
     document.addEventListener("pointerlockchange", () => {
       const was = this.locked;
       this.locked = document.pointerLockElement === this.canvas;
+      if (this.locked && !was) this.ignoreMouseUntil = performance.now() + 150;
       if (was && !this.locked) {
         this.mouseL = this.mouseR = false;
         this.keys.clear();
@@ -146,11 +150,6 @@ export class Input {
     };
     hold("btn-grab", "touchGrab");
     hold("btn-dig", "touchDig");
-    document.getElementById("btn-coins").addEventListener("touchstart", (e) => {
-      e.preventDefault();
-      e.stopPropagation();
-      if (this.onToggleCoins) this.onToggleCoins();
-    }, { passive: false });
   }
 
   // ---------- queries ----------
