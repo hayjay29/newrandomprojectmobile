@@ -1,0 +1,132 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no" />
+    <title>Dragon Hoard</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Semi+Condensed:wght@400;500;600;700&family=Grenze:wght@600;700&display=swap" />
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
+    <canvas id="game"></canvas>
+
+    <!-- In-den HUD -->
+    <div id="hud" hidden>
+      <div class="hud-gold"><span class="lbl">Gold</span><span id="hud-gold" class="num">0</span></div>
+
+      <div class="hud-bag">
+        <div class="bag-name"><span id="hud-bagname">Tiny Pouch</span><span id="hud-haul" class="haul"></span></div>
+        <div class="meter"><span class="lbl">Space</span><div class="bar"><div id="bar-space"></div></div><span id="txt-space" class="num">0 / 6</span></div>
+        <div class="meter"><span class="lbl">Weight</span><div class="bar"><div id="bar-weight"></div></div><span id="txt-weight" class="num">0 / 10 kg</span></div>
+        <div id="hud-over" class="over" hidden>Overloaded</div>
+        <div id="hud-coins" class="coins-mode">Pocketing coins while digging <kbd>C</kbd></div>
+      </div>
+
+      <div class="hud-dist">
+        <span class="lbl">Disturbance</span>
+        <div class="bar"><div id="bar-dist"></div><i style="left:40%"></i><i style="left:70%"></i></div>
+      </div>
+
+      <div id="crosshair"><svg viewBox="0 0 44 44" aria-hidden="true"><circle id="hold-ring" cx="22" cy="22" r="17" /></svg><span class="dot"></span></div>
+      <div id="prompt" hidden><div id="prompt-main"></div><div id="prompt-sub"></div></div>
+      <div id="toasts"></div>
+      <div id="danger-banner" hidden><div class="t1">The dragon is coming</div><div class="t2">Get back to camp · <span id="danger-time">28</span>s</div></div>
+    </div>
+    <div id="vignette"></div>
+    <div id="flash"></div>
+
+    <!-- Touch controls -->
+    <div id="touch-layer" hidden>
+      <div id="stick-base"><div id="stick-knob"></div></div>
+      <div class="tbtns">
+        <button id="btn-coins" class="tbtn small" type="button">Coins</button>
+        <button id="btn-dig" class="tbtn" type="button">Dig</button>
+        <button id="btn-grab" class="tbtn" type="button">Take</button>
+      </div>
+    </div>
+
+    <!-- Title -->
+    <section id="intro" class="screen">
+      <div class="panel intro-panel">
+        <p class="eyebrow">Prototype 0.1 · one chamber</p>
+        <h1>Dragon Hoard</h1>
+        <p class="lede">For three hundred years the dragon has dragged treasure into this cave. Somewhere under it is the relic you were hired to find. Today you have a tiny pouch and your bare hands.</p>
+        <div class="controls">
+          <div class="ctl-col desk">
+            <h3>Mouse &amp; keyboard</h3>
+            <p><kbd>W A S D</kbd> move · <kbd>Shift</kbd> sprint</p>
+            <p><kbd>E</kbd> or <kbd>Left click</kbd> take (hold to pull)</p>
+            <p><kbd>F</kbd>, <kbd>Space</kbd> or <kbd>Right click</kbd> dig (hold)</p>
+            <p><kbd>C</kbd> keep or drop coins while digging</p>
+          </div>
+          <div class="ctl-col touch">
+            <h3>Touch</h3>
+            <p>Left thumb moves, right thumb looks</p>
+            <p>Hold <b>Take</b> or <b>Dig</b></p>
+          </div>
+        </div>
+        <p class="note">Walk back through the lit tunnel behind you to reach camp. Everything you carry sells there. Digging is loud.</p>
+        <button id="btn-start" class="cta" type="button">Enter the den</button>
+      </div>
+    </section>
+
+    <!-- Camp -->
+    <section id="camp" class="screen" hidden>
+      <div class="camp-wrap">
+        <header class="camp-head">
+          <div>
+            <p class="eyebrow" id="camp-eyebrow">Expedition camp</p>
+            <h2 id="camp-title">Back at camp</h2>
+          </div>
+          <div class="camp-gold"><span class="lbl">Gold</span><span id="camp-gold" class="num">0</span></div>
+        </header>
+
+        <div class="camp-grid">
+          <section class="ledger">
+            <h3>Sold to the Merchant</h3>
+            <div id="ledger-rows"></div>
+            <div id="ledger-special"></div>
+            <div class="ledger-stats" id="ledger-stats"></div>
+          </section>
+
+          <section class="shop">
+            <h3>Merchant</h3>
+            <div id="shop-list"></div>
+          </section>
+        </div>
+
+        <footer class="camp-foot">
+          <button id="btn-reset" class="ghost" type="button">Start a new den</button>
+          <div id="reset-confirm" hidden>
+            <span>Erase all progress and regenerate the chamber?</span>
+            <button id="btn-reset-yes" class="ghost danger" type="button">Erase</button>
+            <button id="btn-reset-no" class="ghost" type="button">Keep playing</button>
+          </div>
+          <button id="btn-enter" class="cta" type="button">Return to the den</button>
+        </footer>
+      </div>
+    </section>
+
+    <!-- Death -->
+    <section id="death" class="screen" hidden>
+      <div class="panel death-panel">
+        <h2>The dragon found you</h2>
+        <p id="death-text">Your pack lies somewhere in the hoard.</p>
+        <p class="note">A new relic hunter arrives at camp. Your gold, gear and the chamber's progress remain.</p>
+        <button id="btn-death" class="cta" type="button">Continue</button>
+      </div>
+    </section>
+
+    <!-- Pause (desktop, pointer lock released) -->
+    <section id="pause" class="screen dim" hidden>
+      <div class="panel pause-panel">
+        <h2>Paused</h2>
+        <p>Click to keep searching.</p>
+      </div>
+    </section>
+
+    <script type="module" src="src/main.js"></script>
+  </body>
+</html>

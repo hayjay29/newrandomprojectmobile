@@ -23,4 +23,10 @@ Read it before doing any Dragon Hoard work. Key rules from it:
 - Current phase: **Prototype 0.1** (one chamber) — see sections 111–112 and 123.
   Don't build procedural generation, dragon AI, or other later systems yet.
 
+`dragon-hoard/prototype/` is a browser test build of Prototype 0.1 (Three.js,
+vendored, no build step). It is a fast way to test the core loop before the
+Unity build, not the real game. See its README for how to run it, the
+playtest checklist, and how each file maps to a future Unity script. Tuning
+numbers live in `src/config.js`.
+
 If a design decision changes, update `DESIGN.md` in the same change.
