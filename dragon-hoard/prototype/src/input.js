@@ -18,6 +18,7 @@ export class Input {
     this.lookTouch = null;
     this.locked = false;
     this.ignoreMouseUntil = 0;
+    this.skipMoves = 0;
     this.enabled = false;
     this.onUnlock = null;
     this.isTouch = matchMedia("(pointer: coarse)").matches || "ontouchstart" in window;
@@ -54,7 +55,10 @@ export class Input {
       if (!this.locked) return;
       // Chrome can report one huge bogus movement right after the pointer
       // is captured; skip the first moments and any impossible jumps.
-      if (performance.now() < this.ignoreMouseUntil) return;
+      if (performance.now() < this.ignoreMouseUntil || this.skipMoves > 0) {
+        this.skipMoves--;
+        return;
+      }
       if (Math.abs(e.movementX) > 350 || Math.abs(e.movementY) > 350) return;
       this.lookDX += e.movementX * PLAYER.lookSensitivity;
       this.lookDY += e.movementY * PLAYER.lookSensitivity;
@@ -62,7 +66,10 @@ export class Input {
     document.addEventListener("pointerlockchange", () => {
       const was = this.locked;
       this.locked = document.pointerLockElement === this.canvas;
-      if (this.locked && !was) this.ignoreMouseUntil = performance.now() + 150;
+      if (this.locked && !was) {
+        this.ignoreMouseUntil = performance.now() + 150;
+        this.skipMoves = 2;
+      }
       if (was && !this.locked) {
         this.mouseL = this.mouseR = false;
         this.keys.clear();

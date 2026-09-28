@@ -52,10 +52,10 @@ export const BAGS = [
 export const UPGRADES = {
   handling: {
     name: "Nimble Gloves",
-    desc: "Grab and pull items free faster.",
+    desc: "Toss treasure aside faster.",
     costs: [120, 700, 4000, 22000],
-    values: [1, 0.7, 0.5, 0.36, 0.25], // pickup-time multiplier
-    fmt: (v) => `${Math.round((1 / v) * 100)}% grab speed`,
+    values: [1, 0.7, 0.5, 0.36, 0.25], // toss-time multiplier
+    fmt: (v) => `${Math.round((1 / v) * 100)}% toss speed`,
   },
   shovel: {
     name: "Shovel",
@@ -94,7 +94,7 @@ export const COINS = {
 };
 
 export const TOSS = {
-  time: 0.4, // seconds of hold per toss (scaled by Nimble Gloves)
+  time: 0.4, // seconds of hold per toss (scaled by Nimble Gloves); taking is instant
   reach: 0.8, // extra items for a bigger shovel come from this radius
   distance: 2.3, // how far to the side items land
   flight: 0.45,

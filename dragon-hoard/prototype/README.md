@@ -29,7 +29,7 @@ connection are needed (fonts fall back to system fonts when offline).
 |---|---|---|
 | Move | `W A S D`, `Shift` sprint | left thumb |
 | Look | mouse (click the game to capture it) | right thumb |
-| Take into your bag | `E` or left click (hold) | hold **Take** |
+| Take into your bag (instant) | press `E` or left click | tap **Take** |
 | Toss aside | `F`, `Space` or right click (hold) | hold **Toss** |
 
 Walk back into the lit tunnel behind the start point to return to camp.
@@ -46,7 +46,7 @@ Walk back into the lit tunnel behind the start point to return to camp.
 | 30–32 Space + weight, stacking | Space is a hard limit. Weight can be exceeded (slower and louder). Coins from coin heaps stack in a purse (25 coins per space). |
 | 24 Intuitive value | 1 coin = 1g. Items have intrinsic values. Deeper items are worth more. |
 | 23 Return to camp | Everything auto-sells with a summary by category. |
-| 33, 41–43 Merchant | Bags (Explorer → Reinforced → Hauler), Nimble Gloves, Shovel (toss 1 → 2 → 3 → 5 → 8 items at once), Strength, Boots, Appraisal Glasses. The Bag of Holding (1,000,000g) is shown as an aspiration. |
+| 33, 41–43 Merchant | Bags (Explorer → Reinforced → Hauler), Nimble Gloves (faster tossing), Shovel (toss 1 → 2 → 3 → 5 → 8 items at once), Strength, Boots, Appraisal Glasses. The Bag of Holding (1,000,000g) is shown as an aspiration. |
 | 42 Appraisal | Without the glasses you only see rough guesses, and gems might be worthless glass. |
 | 6 Buried specials | **Tome of the Reaching Hand**: a blue corner pokes out of a slope near the entrance. Aim at it and toss aside the treasure around it to free it. Taking it teaches Telekinesis at once (design doc 47). |
 | 39 Giant objects | The Golden Colossus: its hand and crown poke out of the great mound. Too big to take, but it gets uncovered as you clear the pile. |

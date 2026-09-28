@@ -149,10 +149,6 @@ function nameOf(it) {
   return it.special ? it.def.label : displayName(it, hasAppraisal());
 }
 
-function grabTime(it) {
-  return (0.28 + Math.min(1, itemWeight(it) * 0.09)) * up("handling");
-}
-
 function addDisturbance(n) {
   if (n <= 0 || dist.awake) return;
   dist.value = Math.min(DISTURBANCE.max, dist.value + n);
@@ -463,7 +459,11 @@ function resetHold() {
   ui.hold(0);
 }
 
+let grabWasDown = false;
+
 function updateInteraction(dt) {
+  const grabPressed = input.grab && !grabWasDown;
+  grabWasDown = input.grab;
   const target = findTarget();
   if (!target) {
     ui.prompt("");
@@ -511,17 +511,21 @@ function updateInteraction(dt) {
     ui.prompt(`<b>[${takeKey}]</b> Take <b>${name}</b>${tossText}`, bits.join(" · "));
   }
 
-  const verb = input.grab ? "take" : input.dig && !target.tk ? "toss" : "";
-  if (!verb) return resetHold();
-  if (hold.target !== it || hold.verb !== verb) hold = { target: it, t: 0, verb };
-  const time = verb === "toss" ? TOSS.time * up("handling") : target.tk ? 0.35 * up("handling") : grabTime(it);
-  hold.t += dt / time;
+  // Taking is instant: one press, one item.
+  if (grabPressed) {
+    resetHold();
+    if (target.tk) pullTk(it);
+    else take(it);
+    return;
+  }
+  // Tossing is a short hold.
+  if (!input.dig || target.tk) return resetHold();
+  if (hold.target !== it || hold.verb !== "toss") hold = { target: it, t: 0, verb: "toss" };
+  hold.t += dt / (TOSS.time * up("handling"));
   ui.hold(hold.t);
   if (hold.t >= 1) {
     resetHold();
-    if (verb === "toss") toss(it);
-    else if (target.tk) pullTk(it);
-    else take(it);
+    toss(it);
   }
 }
 
