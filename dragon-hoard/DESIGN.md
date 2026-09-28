@@ -2513,7 +2513,10 @@ until it is uncovered.
 ## 104. Hoard Layer 1 — Columns of Item Layers
 
 The pile is a grid of small columns (0.5 m in the prototype). Each column is
-a stack of thin layers (0.15 m), and each layer holds a few real items.
+a stack of thin layers (0.2 m), and each layer holds 3–4 real items, clumped,
+stacked on each other and varied in size so the pile looks cluttered.
+Treasure lies in patches (coin drifts, weapon and armour piles, heaps of cups
+and plates), like whole hauls the dragon dragged in at once.
 
 - The grid only stores how many layers each column has left.
 - The items in a layer are rolled from a seed for that column, so they are
@@ -2539,16 +2542,15 @@ type and material:
 
 Every one of them is pickable. They do NOT need full physics.
 
-When all items of a column's top layer are taken or tossed, the column drops
-one layer and the next layer appears. Pulling an item out from underneath
-makes whatever was above it settle down as loose items.
+**Nothing refills.** Taking an item leaves a real gap that stays. Only when
+every item of a column's top layer is gone does that spot drop one layer and
+show what is underneath.
 
 ---
 
 ## 106. Hoard Layer 3 — Loose Items
 
-Items the player has tossed aside, or that settled when treasure below them
-was removed, are stored individually as "loose" items and saved with their
+Items the player has tossed aside are stored individually as "loose" items and saved with their
 positions. They are still drawn through the same instanced batches.
 
 Use:
@@ -2581,11 +2583,14 @@ Each column tracks:
 As the player takes and tosses items:
 
 - the pile lowers
-- new layers of items are uncovered
-- treasure slides into holes that get too steep
+- new layers of items are uncovered once a spot is fully cleared
+- holes stay where the player dug them (no automatic sliding or refilling)
 - architecture becomes exposed
 
-Save the layer counts and the loose items, never every individual item.
+Save the layer counts, which items are gone, and the loose items, never
+every individual item. **The den remembers its state exactly:** it saves
+continuously during an expedition (and when the game is closed), not only at
+camp, including the player's bag and position.
 
 **Excavation verb:** "Toss aside" replaces digging. The player throws an item
 out of the way without bagging it. Shovel upgrades toss several items at once

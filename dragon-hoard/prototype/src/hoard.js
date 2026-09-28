@@ -77,14 +77,6 @@ export class Hoard {
     return -this.half + Math.floor(c / this.n) * this.cell;
   }
 
-  neighbours(c) {
-    return [c + 1, c - 1, c + this.n, c - this.n];
-  }
-
-  inHoard(c) {
-    return Math.hypot(this.cellX(c), this.cellZ(c)) < WORLD.hoardRadius;
-  }
-
   heightAt(x, z) {
     const fx = (x + this.half) / this.cell;
     const fz = (z + this.half) / this.cell;
@@ -126,7 +118,7 @@ export class Hoard {
     return null;
   }
 
-  // Give a column a new layer count and a fresh top layer.
+  // Give a column a new layer count and its next layer of items.
   setLayers(c, L) {
     this.L[c] = L;
     this.gen[c] = (this.gen[c] + 1) & 0xffff;
@@ -164,9 +156,8 @@ export class Hoard {
     for (let j = j0; j <= j1; j++) {
       for (let i = i0; i <= i1; i++) {
         const k = j * this.n + i;
-        // when the top layer is partly taken, the gaps show the layer below
-        const visible = this.mask[k] ? this.L[k] - 1 : this.L[k];
-        pos[k * 3 + 1] = visible > 0 ? visible * this.T - 0.1 : -0.3;
+        const L = this.L[k];
+        pos[k * 3 + 1] = L > 0 ? L * this.T - 0.12 : -0.3;
         const t = this.tint[k];
         col[k * 3] = 0.2 * t;
         col[k * 3 + 1] = 0.12 * t;

@@ -17,7 +17,7 @@ import { Sfx } from "./audio.js";
 import { CoinSpray } from "./fx.js";
 import { UI, fmt } from "./ui.js";
 
-const SAVE_KEY = "dragonhoard.proto01.v2";
+const SAVE_KEY = "dragonhoard.proto01.v3";
 
 // ---------- progression state ----------
 function freshState() {
@@ -44,15 +44,33 @@ function readSave() {
   }
 }
 
+// Saves everything: the den exactly as you left it, and, mid-expedition,
+// what you carry and where you stand. Called at camp and every couple of
+// seconds after anything changes in the den.
 function writeSave() {
+  saveDirty = false;
   try {
+    const run = runActive
+      ? {
+          coins: inv.coins,
+          items: inv.items,
+          x: +player.x.toFixed(2), z: +player.z.toFixed(2),
+          yaw: +player.yaw.toFixed(3), pitch: +player.pitch.toFixed(3),
+          disturbance: dist.awake ? 99 : Math.round(dist.value),
+        }
+      : null;
     localStorage.setItem(SAVE_KEY, JSON.stringify({
-      state, hoard: hoard.serialize(), loose: treasure.serialize(), specials: specials.serialize(),
+      state, hoard: hoard.serialize(), loose: treasure.serialize(), specials: specials.serialize(), run,
     }));
   } catch (_) {
     /* saving is best-effort */
   }
 }
+
+let saveDirty = false;
+let saveTimer = 0;
+let runActive = false;
+const changed = () => { saveDirty = true; };
 
 function clearSave() {
   try {
@@ -98,13 +116,17 @@ if (restored) {
 if (location.hash === "#rich") state.gold += 100000; // playtest shortcut
 
 const inv = new Inventory(state);
+const savedRun = restored && saved.run ? saved.run : null;
+if (savedRun) {
+  inv.coins = savedRun.coins || 0;
+  inv.items = savedRun.items || [];
+}
 
 const player = { x: WORLD.start.x, z: WORLD.start.z, y: 2, yaw: 0, pitch: -0.12, vx: 0, vz: 0, bob: 0, stepT: 0 };
 const dist = { value: 0, quiet: 0, stage: 0, awake: false, timer: 0, nextBreath: 0, nextRumble: 0 };
 let mode = "intro";
 let shake = 0;
 let hold = { target: null, t: 0, verb: "" };
-let tossSide = 1;
 let lastTime = performance.now();
 let elapsed = 0;
 
@@ -147,23 +169,6 @@ function haulText() {
 function spaceText(it) {
   const s = itemSpace(it);
   return `${s < 1 ? s.toFixed(1) : +s.toFixed(1)} space`;
-}
-
-// Treasure sliding into a hole: coins spill and clatter.
-function slideFx(slides) {
-  let n = 0;
-  for (const [from, to] of slides) {
-    if (n++ > 10) break;
-    const x = hoard.cellX(to), z = hoard.cellZ(to);
-    spray.emit(x, hoard.heightAt(x, z), z, 2, 0.35);
-  }
-  if (slides.length) {
-    sfx.clink(1);
-    if (slides.length > 3) {
-      sfx.noise(0.5, { freq: 2600, q: 0.6, gain: 0.12 });
-      shake = Math.max(shake, 0.02);
-    }
-  }
 }
 
 // ---------- targeting ----------
@@ -254,28 +259,29 @@ function takeSpecial(it) {
     ui.toast("You found a spellbook: Tome of the Reaching Hand", "special");
     setTimeout(() => ui.toast("Telekinesis learned. Pull small treasure to you from up to 9 metres.", "special"), 900);
     specials.remove(it);
-    writeSave();
+    changed();
     return;
   }
   if (!roomFor(it)) return;
   bag(it);
   specials.remove(it);
+  changed();
 }
 
 function take(it) {
   if (it.special) return takeSpecial(it);
   if (!roomFor(it)) return;
-  const slides = treasure.remove(it);
+  treasure.remove(it);
   bag(it);
   addDisturbance(it.def.noise);
-  slideFx(slides);
+  changed();
   state.itemsMoved += 1;
 }
 
 function pullTk(it) {
   if (!roomFor(it)) return;
-  const slides = treasure.remove(it);
-  slideFx(slides);
+  treasure.remove(it);
+  changed();
   const ghost = treasure.prepare(copyItem(it));
   treasure.show(ghost);
   sfx.tone(300, 0.45, { type: "sine", gain: 0.08, slide: 2.4 });
@@ -305,12 +311,11 @@ function toss(first, around) {
   const right = land(1), left = land(-1);
   const side = hoard.heightAt(right.x, right.z) <= hoard.heightAt(left.x, left.z) ? 1 : -1;
   const spot = side === 1 ? right : left;
-  let slides = [];
   let noise = 0;
   for (const it of batch) {
     if (it.dead) continue;
     const data = copyItem(it);
-    slides = slides.concat(treasure.remove(it));
+    treasure.remove(it);
     const ghost = treasure.prepare({ ...data });
     treasure.show(ghost);
     let lx = spot.x + (Math.random() - 0.5) * 0.9, lz = spot.z + (Math.random() - 0.5) * 0.9;
@@ -321,12 +326,13 @@ function toss(first, around) {
       treasure.hide(g);
       treasure.addLoose({ ...data, x: target.x, y: Math.max(0, hoard.heightAt(target.x, target.z)), z: target.z, yaw: g.yaw });
       sfx.clink(0.9);
+      changed();
     });
     noise += DISTURBANCE.tossBase + it.def.noise * 0.6;
     state.itemsMoved += 1;
   }
   addDisturbance(noise);
-  slideFx(slides);
+  changed();
   sfx.noise(0.18, { freq: 1800, q: 0.8, gain: 0.08 });
 }
 
@@ -631,6 +637,7 @@ function returnToCamp() {
   const pending = state.pendingSpecials.splice(0);
   inv.clear();
   resetDisturbance();
+  runActive = false;
   writeSave();
   if (total) sfx.sale(total);
   enterCamp({
@@ -656,7 +663,8 @@ function enterCamp(info) {
   document.getElementById("camp").scrollTop = 0;
 }
 
-function enterDen() {
+// resume: a saved mid-expedition position to continue from
+function enterDen(resume) {
   sfx.unlock();
   ui.show("intro", false);
   ui.show("camp", false);
@@ -664,8 +672,13 @@ function enterDen() {
   ui.show("hud", true);
   if (input.isTouch) document.getElementById("touch-layer").hidden = false;
   Object.assign(player, { x: WORLD.start.x, z: WORLD.start.z, yaw: 0, pitch: -0.12, vx: 0, vz: 0 });
-  player.y = Math.max(0, hoard.heightAt(player.x, player.z)) + PLAYER.eyeHeight;
   resetDisturbance();
+  if (resume) {
+    Object.assign(player, { x: resume.x, z: resume.z, yaw: resume.yaw, pitch: resume.pitch });
+    dist.value = resume.disturbance || 0;
+  }
+  player.y = Math.max(0, hoard.heightAt(player.x, player.z)) + PLAYER.eyeHeight;
+  runActive = true;
   resetHold();
   input.reset();
   input.enabled = true;
@@ -692,6 +705,7 @@ function die() {
   inv.clear();
   state.deaths += 1;
   resetDisturbance();
+  runActive = false;
   writeSave();
   setTimeout(() => {
     ui.show("hud", false);
@@ -715,14 +729,16 @@ document.getElementById("pause").addEventListener("click", () => {
   input.requestLock();
 });
 document.getElementById("btn-start").addEventListener("click", () => {
-  if (restored && state.expeditions > 0) {
+  if (savedRun) {
+    enterDen(savedRun); // pick up exactly where you left off
+  } else if (restored && state.expeditions > 0) {
     sfx.unlock();
     enterCamp({ eyebrow: "Expedition camp", title: "Welcome back", rows: [], emptyText: "Your camp is as you left it." });
   } else {
     enterDen();
   }
 });
-document.getElementById("btn-enter").addEventListener("click", enterDen);
+document.getElementById("btn-enter").addEventListener("click", () => enterDen());
 document.getElementById("btn-death").addEventListener("click", () => {
   enterCamp({ eyebrow: "A new relic hunter arrives", title: "Camp", rows: [], emptyText: "Nothing was sold." });
 });
@@ -738,7 +754,12 @@ document.getElementById("btn-reset-yes").addEventListener("click", () => {
   clearSave();
   location.reload();
 });
-if (restored && state.expeditions > 0) document.getElementById("btn-start").textContent = "Continue";
+if (savedRun || (restored && state.expeditions > 0)) document.getElementById("btn-start").textContent = "Continue";
+
+// Save when the page is hidden or closed, so nothing you did is lost.
+const saveNow = () => { if (runActive || saveDirty) writeSave(); };
+addEventListener("pagehide", saveNow);
+document.addEventListener("visibilitychange", () => { if (document.hidden) saveNow(); });
 
 function resize() {
   const w = innerWidth, h = innerHeight;
@@ -773,6 +794,14 @@ function tick(dt) {
     const a = elapsed * 0.05;
     camera.position.set(Math.sin(a) * 20, 12 + Math.sin(elapsed * 0.1) * 1.5, Math.cos(a) * 20 + 2);
     camera.lookAt(0, 5, -4);
+  }
+
+  if (runActive) {
+    saveTimer -= dt;
+    if (saveTimer <= 0) {
+      saveTimer = 2;
+      if (saveDirty) writeSave();
+    }
   }
 
   treasure.update(dt);

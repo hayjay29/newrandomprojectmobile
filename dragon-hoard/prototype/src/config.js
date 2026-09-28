@@ -19,9 +19,9 @@ export const WORLD = {
 // stack of layers; each layer holds a few real items. Only the top layer
 // of each column exists as objects.
 export const TREASURE = {
-  layer: 0.15, // metres of pile per layer
-  itemsPerLayer: [2, 3], // min / max items in one layer of one column
-  maxStep: 3, // layers a column may stand above a neighbour before it slides
+  layer: 0.2, // metres of pile per layer
+  itemsPerLayer: [3, 4], // min / max items in one layer of one column
+  scale: [0.95, 1.3], // random size per item, so the pile looks cluttered
 };
 
 export const PLAYER = {

@@ -38,11 +38,10 @@ Walk back into the lit tunnel behind the start point to return to camp.
 
 | Design doc | Prototype 0.1 |
 |---|---|
-| 103 All items | **The whole hoard is pickable items.** There's no fake hill: every coin heap, cup, sword and shield you see can be taken or tossed. About 24,000 are on the surface at once and about 320,000 are in the chamber. |
-| 104 Columns of layers | The pile is a 129×129 grid of 0.5 m columns, each a stack of 0.15 m layers of 2–3 items. Only the top layer exists as objects. The rest is a seed per column. |
-| 105 Visible top layer | Drawn with GPU instancing (about 23 batches). Clearing a column's top layer uncovers the next. Pulling something out from underneath makes what was on top settle down. |
-| 106 Loose items | Tossed and settled items are stored with their positions and saved. |
-| 7 Hoard reacts | When a hole gets steeper than 3 layers, the neighbouring treasure slides into it, with spilling coins. |
+| 103 All items | **The whole hoard is pickable items.** There's no fake hill: every coin heap, cup, sword and shield you see can be taken or tossed. About 33,000 are on the surface at once and about 340,000 are in the chamber. |
+| 104 Columns of layers | The pile is a 129×129 grid of 0.5 m columns, each a stack of 0.2 m layers of 3–4 items: clumped, stacked, varied in size, and grouped into patches (coin drifts, weapon piles, cups and plates). Only the top layer exists as objects. The rest is a seed per column. |
+| 105 Visible top layer | Drawn with GPU instancing (about 23 batches, ~33k items). Taking an item leaves a gap that stays. A spot only drops to the next layer once everything on it is gone. Nothing refills or slides in. |
+| 106 Loose items | Tossed items are stored with their positions and saved. |
 | 3 World is the progress bar | The pile visibly lowers as you clear it, and eventually uncovers the original mosaic floor. |
 | 30–32 Space + weight, stacking | Space is a hard limit. Weight can be exceeded (slower and louder). Coins from coin heaps stack in a purse (25 coins per space). |
 | 24 Intuitive value | 1 coin = 1g. Items have intrinsic values. Deeper items are worth more. |
@@ -53,7 +52,7 @@ Walk back into the lit tunnel behind the start point to return to camp.
 | 39 Giant objects | The Golden Colossus: its hand and crown poke out of the great mound. Too big to take, but it gets uncovered as you clear the pile. |
 | 77–79 Disturbance | Actions make noise. At 40% you hear breathing, and at 70% the hoard trembles. At 100% the dragon wakes and you have 28 seconds to reach camp. |
 | 88–91 Death | Fire, then "a new relic hunter arrives". Your pack stays where you fell and can be recovered. Gold, gear and dig progress are kept. |
-| 110 Saving | Saves at camp: gold, upgrades, the heightfield (not individual coins) and remaining items. |
+| 110 Saving | Saves continuously while you play, and when the page is closed: gold, upgrades, which items are gone, tossed items, and mid-expedition your bag and position. **Continue** puts you back exactly where you were. |
 
 **Deliberately left out** (design doc 112–114): multiple chambers, the
 procedural den, the dragon as a physical creature, carts and wagons, Mage and

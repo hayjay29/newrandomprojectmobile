@@ -11,9 +11,23 @@
 import * as THREE from "../vendor/three.module.min.js";
 import { WORLD, TREASURE } from "./config.js";
 import { CATALOG, buildGeometry, rollTreasure } from "./items.js";
-import { mulberry32, weightedPick } from "./rng.js";
+import { mulberry32, weightedPick, fbm2 } from "./rng.js";
 
 const SPAWNABLE = Object.entries(CATALOG).filter(([, d]) => d.spawn);
+
+// Treasure lies in patches, the way a dragon drags whole hauls in at once:
+// coin drifts, piles of weapons and armour, heaps of cups and plates.
+const PATCHES = [
+  { upTo: 0.36, boost: { coins: 3.5, ring: 1.5 } },
+  { upTo: 0.46, boost: { goblet: 3, plate: 3, pottery: 1.5 } },
+  { upTo: 0.56, boost: {} },
+  { upTo: 1.01, boost: { sword: 3.5, helmet: 3, shield: 3 } },
+];
+
+function patchAt(x, z) {
+  const n = fbm2(x * 0.11 + 40, z * 0.11 - 17, WORLD.seed + 50, 3);
+  return PATCHES.find((p) => n < p.upTo).boost;
+}
 
 function seedFor(c, gen) {
   let h = Math.imul(c + 1, 2654435761) ^ Math.imul(gen + 7, 1597334677) ^ WORLD.seed;
@@ -116,6 +130,7 @@ export class Treasure {
   write(it) {
     this._e.set(it.tilt || 0, it.yaw || 0, 0, "YXZ");
     this._q.setFromEuler(this._e);
+    this._s.setScalar(it.s || 1);
     this._m.compose(this._p.set(it.x, it.y, it.z), this._q, this._s);
     it.pool.mesh.setMatrixAt(it.slot, this._m);
     this.dirtyPools.add(it.pool);
@@ -132,41 +147,51 @@ export class Treasure {
     it.key = this.keyOf(it);
     const bs = this.shape(it.key).boundingSphere;
     this._e.set(it.tilt || 0, it.yaw || 0, 0, "YXZ");
-    this._v.copy(bs.center).applyEuler(this._e);
+    const sc = it.s || 1;
+    this._v.copy(bs.center).multiplyScalar(sc).applyEuler(this._e);
     it.ox = this._v.x;
     it.oy = this._v.y;
     it.oz = this._v.z;
-    it.r = Math.max(0.12, bs.radius * 0.8);
+    it.r = Math.max(0.12, bs.radius * 0.8 * sc);
     // how tall the item actually stands once tilted
-    it.eh = Math.max(0.04, it.def.h * Math.abs(Math.cos(it.tilt || 0)));
+    it.eh = Math.max(0.04, it.def.h * sc * Math.abs(Math.cos(it.tilt || 0)));
     return it;
   }
 
   // ---------- layers ----------
   // Items in one layer of column c. gen seeds the roll; L sets depth.
-  rollLayer(c, L, gen, role) {
+  rollLayer(c, L, gen) {
     if (L <= 0) return [];
     const hoard = this.hoard;
     const rng = mulberry32(seedFor(c, gen));
     const [lo, hi] = TREASURE.itemsPerLayer;
+    const [s0, s1] = TREASURE.scale;
     const count = lo + Math.floor(rng() * (hi - lo + 1));
     const depth = (hoard.L0[c] - L) * hoard.T;
     const top = L * hoard.T;
     const cx = hoard.cellX(c), cz = hoard.cellZ(c);
+    const boost = patchAt(cx, cz);
     const allowed = SPAWNABLE
       .filter(([, d]) => (d.minDepth || 0) <= depth)
-      .map(([key, d]) => ({ key, w: d.spawn * (key === "coins" ? 1 : 1 + depth * 0.05) }));
+      .map(([key, d]) => ({ key, w: d.spawn * (boost[key] || 1) * (key === "coins" ? 1 : 1 + depth * 0.05) }));
+    // items clump around one or two points instead of spreading evenly
+    const clumps = [0, 1].map(() => ({ x: cx + (rng() - 0.5) * 0.4, z: cz + (rng() - 0.5) * 0.4 }));
     const out = [];
     for (let k = 0; k < count; k++) {
       const { key } = weightedPick(rng, allowed);
       const it = rollTreasure(key, rng, depth);
-      it.x = cx + (rng() - 0.5) * 0.55;
-      it.z = cz + (rng() - 0.5) * 0.55;
+      const cl = clumps[k % 2];
+      it.x = cl.x + (rng() - 0.5) * 0.36;
+      it.z = cl.z + (rng() - 0.5) * 0.36;
+      it.s = s0 + rng() * (s1 - s0);
+      it.tilt = (it.tilt || 0) + (rng() - 0.5) * 0.5; // heaped at odd angles
       it.c = c;
       it.k = k;
-      it.role = role;
+      it.role = "top";
       this.prepare(it);
-      it.y = top - it.eh * 0.45 - rng() * 0.03;
+      // later items rest on the earlier ones, so the layer is piled up
+      const stack = k >= 2 ? 0.04 + rng() * 0.07 : 0;
+      it.y = top - it.eh * 0.5 + stack - rng() * 0.03;
       out.push(it);
     }
     return out;
@@ -182,10 +207,9 @@ export class Treasure {
       return;
     }
     const mask = hoard.mask[c];
-    const top = this.rollLayer(c, L, hoard.gen[c], "top");
+    const top = this.rollLayer(c, L, hoard.gen[c]);
+    // items already taken from this layer stay gone
     const list = top.filter((it) => !(mask & (1 << it.k)));
-    // With the top layer partly taken, the layer below shows through.
-    if (mask) list.push(...this.rollLayer(c, L - 1, (hoard.gen[c] + 1) & 0xffff, "under"));
     for (const it of list) this.show(it);
     this.cells[c] = list;
     this.cells[c].topCount = top.length;
@@ -204,101 +228,39 @@ export class Treasure {
   }
 
   // ---------- removing items ----------
-  // Removes an item from the hoard. Returns column slides for effects.
+  // Removes an item from the hoard for good. Nothing refills the gap it
+  // leaves; only when a column's whole top layer is gone does the column
+  // drop and the layer underneath come into view.
   remove(it) {
-    if (it.dead) return [];
+    if (it.dead) return;
     it.dead = true;
     this.hide(it);
     if (it.role === "loose") {
       this.loose.delete(it);
       const list = this.looseByCell.get(it.cell);
       if (list) list.splice(list.indexOf(it), 1);
-      return [];
+      this.flush();
+      return;
     }
     const hoard = this.hoard;
     const c = it.c;
-    if (it.role === "under") return this.removeUnder(it);
-    const wasMask = hoard.mask[c];
     hoard.mask[c] |= 1 << it.k;
     const list = this.cells[c];
     list.splice(list.indexOf(it), 1);
-    const left = list.topCount - popcount(hoard.mask[c]);
-    if (left <= 0) {
-      // top layer cleared: the column drops and the layer below takes over
+    if (list.topCount - popcount(hoard.mask[c]) <= 0) {
       hoard.setLayers(c, hoard.L[c] - 1);
-      const slides = this.relax([c]);
-      this.flush();
-      return slides;
+      this.renderCell(c);
+      hoard.markDirty(c, 1);
     }
-    if (!wasMask) {
-      for (const u of this.rollLayer(c, hoard.L[c] - 1, (hoard.gen[c] + 1) & 0xffff, "under")) {
-        this.show(u);
-        list.push(u);
-      }
-    }
-    hoard.markDirty(c, 0);
     this.flush();
-    return [];
-  }
-
-  // Pulling something out from under the top layer: whatever was still
-  // on top settles down as loose treasure, and the layer below becomes
-  // the new top (minus the item just taken).
-  removeUnder(it) {
-    const hoard = this.hoard;
-    const c = it.c;
-    const list = this.cells[c];
-    for (const t of list) {
-      if (t.role === "top" && !t.dead) this.addLoose(this.data(t));
-    }
-    hoard.setLayers(c, hoard.L[c] - 1); // top is now the old "under" layer
-    hoard.mask[c] = 1 << it.k;
-    this.renderCell(c);
-    let start = [c];
-    if (this.cells[c] && this.cells[c].topCount <= 1) hoard.setLayers(c, hoard.L[c] - 1);
-    const slides = this.relax(start);
-    this.flush();
-    return slides;
   }
 
   // The parts of an item needed to recreate it somewhere else.
   data(it) {
     return {
       type: it.type, variant: it.variant, value: it.value, coins: it.coins, glass: it.glass,
-      yaw: it.yaw, tilt: it.tilt, x: it.x, y: it.y, z: it.z,
+      yaw: it.yaw, tilt: it.tilt, s: it.s, x: it.x, y: it.y, z: it.z,
     };
-  }
-
-  // Treasure slides into holes: when a column stands more than maxStep
-  // layers above a neighbour, its top layer spills onto that neighbour.
-  relax(start) {
-    const hoard = this.hoard;
-    const queue = [...start];
-    const dirty = new Set(start);
-    const slides = [];
-    let guard = 0;
-    while (queue.length && guard++ < 4000) {
-      const a = queue.pop();
-      for (const b of hoard.neighbours(a)) {
-        const diff = hoard.L[a] - hoard.L[b];
-        let from = -1, to = -1;
-        if (diff > TREASURE.maxStep && hoard.inHoard(b)) { from = a; to = b; }
-        else if (-diff > TREASURE.maxStep && hoard.inHoard(a)) { from = b; to = a; }
-        if (from < 0) continue;
-        hoard.setLayers(from, hoard.L[from] - 1);
-        hoard.setLayers(to, hoard.L[to] + 1);
-        slides.push([from, to]);
-        for (const c of [from, to]) {
-          if (!dirty.has(c)) dirty.add(c);
-          queue.push(c);
-        }
-      }
-    }
-    for (const c of dirty) {
-      this.renderCell(c);
-      hoard.markDirty(c, 1);
-    }
-    return slides;
   }
 
   // ---------- picking ----------
@@ -426,7 +388,7 @@ export class Treasure {
         if (it.y === rest) it.vy = 0;
         this.write(it);
       } else if (it.y < rest - 0.01) {
-        it.y = rest; // treasure slid in underneath: ride on top of it
+        it.y = rest; // never sink into the pile
         it.vy = 0;
         this.write(it);
       }
@@ -444,6 +406,7 @@ export class Treasure {
       if (it.value) o.val = it.value;
       if (it.coins) o.c = it.coins;
       if (it.glass) o.g = 1;
+      if (it.s) o.s = +it.s.toFixed(2);
       out.push(o);
     }
     return out;
@@ -452,7 +415,7 @@ export class Treasure {
   load(arr) {
     for (const o of arr || []) {
       if (!CATALOG[o.t]) continue;
-      this.addLoose({ type: o.t, x: o.x, y: o.y, z: o.z, yaw: o.yw, tilt: o.tl, variant: o.v, value: o.val || 0, coins: o.c, glass: !!o.g });
+      this.addLoose({ type: o.t, x: o.x, y: o.y, z: o.z, yaw: o.yw, tilt: o.tl, variant: o.v, value: o.val || 0, coins: o.c, glass: !!o.g, s: o.s });
     }
     this.flush();
   }
